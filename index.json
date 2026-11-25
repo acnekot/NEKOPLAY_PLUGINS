@@ -41,9 +41,9 @@
       "id": "osu_motion",
       "name": "osu!stable 动效引擎",
       "type": "motion",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "author": "NEKOPLAY",
-      "desc": "还原经典 osu!stable 选歌架、设置侧栏与切屏动效：干脆利落的 OutCubic / OutQuart / OutExpo 留尾刹停、大行程悬停弹出位移（10dp）与 500ms 经典背景淡入，零回弹拖泥带水；支持插件内热切换预设",
+      "desc": "还原经典 osu!stable 选歌架逐项瀑布入场、设置侧栏留尾滑出与大行程悬停弹出位移，支持插件内热切换预设与留尾倍率",
       "url": "osu_motion.js"
     },
     {

@@ -1,43 +1,43 @@
 // @id osu_motion
 // @name osu!stable 动效引擎
 // @type motion
-// @version 2.1.0
+// @version 2.2.0
 // @minHost 0.6.8
 // @permissions motion.profile, storage
 // @author NEKOPLAY
-// @desc 还原经典 osu!stable 选歌架、设置侧栏与切屏动效：干脆利落的 OutCubic / OutQuart / OutExpo 留尾刹停、大行程悬停弹出位移（10dp）与 500ms 经典背景淡入，零回弹拖泥带水；支持插件内热切换预设
+// @desc 还原经典 osu!stable 选歌架逐项瀑布入场、设置侧栏留尾滑出与大行程悬停弹出位移，支持插件内热切换预设与留尾倍率
 // @api 2
 
 const PRESETS = {
   stable_classic: {
     label: 'osu!stable 经典',
-    desc: '还原经典 osu!stable 设置栏滑出与选歌架手感：干脆起手、清晰留尾、大行程悬停弹出（10dp）与 500ms 背景淡入',
+    desc: '还原经典 osu!stable 选歌架逐项瀑布滑入（28ms/48dp）、设置栏留尾滑出与 10dp 悬停弹出',
     quick:     { easing: 'outCubic', ms: 180 },
     standard:  { easing: 'outQuart', ms: 340 },
     page:      { easing: 'outExpo',  ms: 440 },
     crossfade: { easing: 'outQuad',  ms: 500 },
     hero:      { easing: 'outQuart', ms: 380 },
-    effects:   { hoverShiftDp: 10, hoverTint: true, pressScale: 0.965, pageScale: true },
+    effects:   { hoverShiftDp: 10, hoverTint: true, pressScale: 0.965, pageScale: true, listStaggerMs: 28, listSlideDp: 48 },
   },
   stable_tail: {
     label: 'stable 选歌长留尾',
-    desc: '强化选歌架滑行留尾感（OutExpoTail），前段极速切入、后段绵长丝滑刹停，悬停弹出 11dp',
+    desc: '强化选歌架滑行留尾感（OutExpoTail）与更深瀑布滑入（34ms/56dp），悬停弹出 11dp',
     quick:     { easing: 'outQuart',    ms: 220 },
     standard:  { easing: 'outExpo',     ms: 440 },
     page:      { easing: 'outExpoTail', ms: 560 },
     crossfade: { easing: 'outCubic',    ms: 540 },
     hero:      { easing: 'outExpo',     ms: 480 },
-    effects:   { hoverShiftDp: 11, hoverTint: true, pressScale: 0.96, pageScale: true },
+    effects:   { hoverShiftDp: 11, hoverTint: true, pressScale: 0.96, pageScale: true, listStaggerMs: 34, listSlideDp: 56 },
   },
   stable_snappy: {
     label: 'stable 极速干脆',
-    desc: '纯正经典 OutCubic / OutQuad 短平快响应，零多余拖影，极度跟手',
+    desc: '纯正经典 OutCubic / OutQuad 短平快响应，18ms 极速瀑布加载，零多余拖影',
     quick:     { easing: 'outQuad',  ms: 140 },
     standard:  { easing: 'outCubic', ms: 260 },
     page:      { easing: 'outQuart', ms: 340 },
     crossfade: { easing: 'outQuad',  ms: 420 },
     hero:      { easing: 'outCubic', ms: 300 },
-    effects:   { hoverShiftDp: 9, hoverTint: true, pressScale: 0.97, pageScale: true },
+    effects:   { hoverShiftDp: 9, hoverTint: true, pressScale: 0.97, pageScale: true, listStaggerMs: 18, listSlideDp: 36 },
   },
   lazer_quint: {
     label: 'lazer 五次留尾',
@@ -47,7 +47,7 @@ const PRESETS = {
     page:      { easing: 'outQuint', ms: 560 },
     crossfade: { easing: 'outQuint', ms: 580 },
     hero:      { easing: 'outQuint', ms: 580 },
-    effects:   { hoverShiftDp: 7, hoverTint: true, pressScale: 0.955, pageScale: true },
+    effects:   { hoverShiftDp: 7, hoverTint: true, pressScale: 0.955, pageScale: true, listStaggerMs: 26, listSlideDp: 42 },
   },
 };
 
