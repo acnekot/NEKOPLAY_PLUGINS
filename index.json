@@ -1,0 +1,50 @@
+{
+  "name": "NEKOPLAY 官方插件",
+  "plugins": [
+    {
+      "id": "bilibili",
+      "name": "哔哩哔哩",
+      "type": "source",
+      "version": "1.1.0",
+      "author": "NEKOPLAY",
+      "desc": "哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词，扫码登录后同步收藏夹与稍后再看",
+      "url": "bilibili.js"
+    },
+    {
+      "id": "coverflow",
+      "name": "3D 封面墙",
+      "type": "feature",
+      "version": "1.1.0",
+      "author": "NEKOPLAY",
+      "desc": "经典 3D 透视封面墙（外包透明 CD 塑料壳、镜面倒影、鼠标与陀螺仪 3D 随动、点击 3D 旋身翻盖放大看完整曲目；手机横屏自动进入）",
+      "url": "coverflow.js"
+    },
+    {
+      "id": "kugou",
+      "name": "酷狗音乐",
+      "type": "source",
+      "version": "1.1.0",
+      "author": "NEKOPLAY",
+      "desc": "酷狗音源：搜索（单曲/专辑/歌单/热搜/联想）、播放、歌词、推荐歌单、新歌速递、每日推荐、排行榜，扫码登录后看自己的歌单",
+      "url": "kugou.js"
+    },
+    {
+      "id": "netease",
+      "name": "网易云音乐",
+      "type": "source",
+      "version": "1.0.1",
+      "author": "NEKOPLAY",
+      "desc": "网易云音源：搜索、播放、逐字歌词、日推、私人 FM、歌单广场、排行榜、评论、MV、电台、云盘，扫码登录后同步歌单和喜欢",
+      "url": "netease.js"
+    },
+    {
+      "id": "qqmusic",
+      "name": "QQ 音乐",
+      "type": "source",
+      "version": "1.7.1",
+      "author": "NEKOPLAY",
+      "desc": "QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论与点赞、相似推荐、个人主页、听歌排行与播放上报",
+      "url": "qqmusic.js"
+    }
+  ]
+}
