@@ -45,6 +45,15 @@
       "author": "NEKOPLAY",
       "desc": "QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论与点赞、相似推荐、个人主页、听歌排行与播放上报",
       "url": "qqmusic.js"
+    },
+    {
+      "id": "vibe_board",
+      "name": "听歌氛围看板 (v2 Demo)",
+      "type": "page",
+      "version": "1.0.0",
+      "author": "NEKOPLAY",
+      "desc": "Plugin API v2 声明式页面插件示例：实时展示当前播放封面与曲库概览、记录听歌心情打卡、联动打开 3D 封面墙（纯 JS 热更新原生界面）",
+      "url": "vibe_board.js"
     }
   ]
 }
