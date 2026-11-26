@@ -23,9 +23,9 @@
       "id": "kugou",
       "name": "酷狗音乐（概念版）",
       "type": "source",
-      "version": "2.2.0",
+      "version": "2.3.0",
       "author": "NEKOPLAY",
-      "desc": "酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、概念版三段式 Auth 授权取流（完整支持概念版 VIP 与无损）、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、个人主页/听歌排行/关注歌手、扫码/Cookie 登录与曲库一键签到领每日 VIP",
+      "desc": "酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册设备 dfid 防风控、概念版三段式 Auth 授权取流（完整支持概念版 VIP 与无损，保留原生 CDN 协议防 TLS 报错）、单曲/专辑/歌手/歌单搜索、每日推荐、私人 FM、个人主页/听歌排行与曲库一键签到领每日 VIP",
       "url": "kugou.js"
     },
     {

@@ -1,11 +1,11 @@
 // @id kugou
 // @name 酷狗音乐（概念版）
 // @type source
-// @version 2.2.0
+// @version 2.3.0
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、概念版三段式 Auth 授权取流（完整支持概念版 VIP 与无损）、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、个人主页/听歌排行/关注歌手、扫码/Cookie 登录与曲库一键签到领每日 VIP
+// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册设备 dfid 防风控、概念版三段式 Auth 授权取流（完整支持概念版 VIP 与无损，保留原生 CDN 协议防 TLS 报错）、单曲/专辑/歌手/歌单搜索、每日推荐、私人 FM、个人主页/听歌排行与曲库一键签到领每日 VIP
 // @api 2
 // @search track,album,artist,playlist
 //
@@ -93,6 +93,88 @@ function rsaLiteEncrypt(data) {
   return modPow(BigInt('0x' + hex), RSA_LITE_E, RSA_LITE_N).toString(16).padStart(256, '0').toUpperCase();
 }
 
+/** 概念版 RSAES-PKCS1-v1_5 加密（与 MakcRe/KuGouMusicApi rsaEncrypt2 一致），输出小写 hex */
+function rsaLitePkcs1Encrypt(data) {
+  const s = typeof data === 'string' ? data : JSON.stringify(data);
+  const bytes = [];
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code < 0x80) bytes.push(code);
+    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    else bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+  }
+  const psLen = 128 - 3 - bytes.length;
+  const em = [0x00, 0x02];
+  for (let i = 0; i < psLen; i++) em.push(1 + Math.floor(Math.random() * 254));
+  em.push(0x00);
+  for (let i = 0; i < bytes.length; i++) em.push(bytes[i]);
+  const hex = em.map(b => b.toString(16).padStart(2, '0')).join('');
+  return modPow(BigInt('0x' + hex), RSA_LITE_E, RSA_LITE_N).toString(16).padStart(256, '0');
+}
+
+let dfidMem = null;
+/** 向酷狗设备风控接口 /risk/v3/r_register_dev 注册真实 dfid（避免假 dfid 触发 20028 风控或 VIP 鉴权失败） */
+async function ensureDfid(force) {
+  const c = cred();
+  if (!force && c && c.dfid && c.dfid !== '-') return c.dfid;
+  if (!force && dfidMem && dfidMem !== '-') return dfidMem;
+  const saved = nk.store.get('dfid');
+  if (!force && saved && saved !== '-') { dfidMem = saved; return dfidMem; }
+  try {
+    const aesSecret = randomStr(6);
+    const km = nk.md5(aesSecret);
+    const aesKey = km.slice(0, 16);
+    const aesIv = km.slice(16, 32);
+    const g = guid();
+    const devPayload = {
+      availableRamSize: 4983533568, availableRomSize: 48114719, availableSDSize: 48114717,
+      basebandVer: '', batteryLevel: 100, batteryStatus: 3, brand: 'Redmi',
+      buildSerial: 'unknown', device: 'marble', imei: g, imsi: '',
+      manufacturer: 'Xiaomi', uuid: g, accelerometer: false, accelerometerValue: '',
+      gravity: false, gravityValue: '', gyroscope: false, gyroscopeValue: '',
+      light: false, lightValue: '', magnetic: false, magneticValue: '',
+      orientation: false, orientationValue: '', pressure: false, pressureValue: '',
+      step_counter: false, step_counterValue: '', temperature: false, temperatureValue: '',
+    };
+    const encBody = nk.aes({ data: JSON.stringify(devPayload), key: aesKey, iv: aesIv, mode: 'cbc', padding: true });
+    const pRsa = rsaLitePkcs1Encrypt({ aes: aesSecret, uid: (c && c.userid) || 0, token: (c && c.token) || '' });
+    const time = Math.floor(Date.now() / 1000);
+    const p = { dfid: '-', mid: mid(), uuid: '-', appid: APPID, clientver: CLIENTVER, clienttime: time, part: 1, platid: 1, p: pRsa };
+    if (c && c.token) p.token = c.token;
+    if (c && c.userid) p.userid = c.userid;
+    p.signature = signAndroid(p, encBody);
+    const url = 'https://userservice.kugou.com/risk/v3/r_register_dev?' + Object.keys(p).map(k => k + '=' + enc(valStr(p[k]))).join('&');
+    const r = await nk.http({
+      url,
+      method: 'POST',
+      body: encBody,
+      binary: true,
+      headers: {
+        'User-Agent': UA,
+        'Content-Type': 'text/plain',
+        dfid: '-',
+        mid: mid(),
+        clienttime: String(time),
+        'kg-rc': '1',
+        'kg-thash': '5d816a0',
+        'kg-rec': '1',
+        'kg-rf': 'B9EDA08A64250DEFFBCADDEE00F8F25F',
+      },
+    });
+    if (r.status >= 200 && r.status < 300 && r.bodyBase64) {
+      const decB64 = nk.aes({ dataBase64: r.bodyBase64, key: aesKey, iv: aesIv, mode: 'cbc', padding: true, decrypt: true });
+      const j = JSON.parse(nk.base64.decode(decB64));
+      const d = j && j.status === 1 && j.data && j.data.dfid;
+      if (d && d !== '-') {
+        dfidMem = String(d);
+        nk.store.set('dfid', dfidMem);
+        return dfidMem;
+      }
+    }
+  } catch (e) {}
+  return '-';
+}
+
 /**
  * 概念版网关请求封装：默认注入 dfid / mid / uuid / appid(3116) / clientver(11440) / clienttime + 登录态 token/userid + 签名。
  */
@@ -100,7 +182,7 @@ async function req(path, params, o) {
   o = o || {};
   const time = Math.floor(Date.now() / 1000);
   const c = cred();
-  const dfid = o.dfid || (c && c.dfid) || '-';
+  const dfid = o.dfid || (c && c.dfid) || dfidMem || nk.store.get('dfid') || '-';
   const p = {};
   if (o.defaults !== false) {
     Object.assign(p, { dfid, mid: mid(), uuid: '-', appid: APPID, clientver: CLIENTVER, clienttime: time });
@@ -279,7 +361,7 @@ function pickPrivStream(j, maxIdx) {
     if (hit && hit.url) {
       const br = Number(hit.br) || 0;
       const out = {
-        url: hit.url.replace(/^http:/, 'https:'),
+        url: hit.url,
         ext: hit.ext || (q === 'flac' || q === 'high' ? 'flac' : 'mp3'),
         kbps: br > 10000 ? Math.round(br / 1000) : br,
         level: LEVEL_BY_Q[q] || 'standard',
@@ -297,7 +379,7 @@ function pickPrivStream(j, maxIdx) {
 let userAuthCache = null;
 
 /** 概念版用户播放授权（/v1/user_verify -> auth），用于 /v1/authorization + /tracker/v5/url */
-async function getUserAuth(force) {
+async function getUserAuth(force, dfid) {
   const c = cred();
   if (!c || !c.token || !c.userid) return '';
   if (!force && userAuthCache && userAuthCache.uid === String(c.userid) && userAuthCache.auth && Date.now() - userAuthCache.ts < 600_000) {
@@ -305,8 +387,9 @@ async function getUserAuth(force) {
   }
   try {
     const j = await req('/v1/user_verify', { module_id: 51 }, {
-      base: 'http://gateway.kugou.com',
+      base: 'https://gateway.kugou.com',
       router: 'trackercdngz.kugou.com',
+      dfid,
       raw: true,
     });
     const auth = j && j.status === 1 && j.data && j.data.auth ? String(j.data.auth) : '';
@@ -320,7 +403,7 @@ async function getUserAuth(force) {
 
 /** 概念版单曲授权（/v1/authorization -> { auth, open_time }） */
 async function getSongAuth(hash, audioId, dfid) {
-  let uAuth = await getUserAuth(false);
+  let uAuth = await getUserAuth(false, dfid);
   if (!uAuth) return null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -331,7 +414,7 @@ async function getSongAuth(hash, audioId, dfid) {
         clientver: 11561,
         hash,
       }, {
-        base: 'http://gateway.kugou.com',
+        base: 'https://gateway.kugou.com',
         router: 'trackercdngz.kugou.com',
         dfid,
         raw: true,
@@ -341,7 +424,7 @@ async function getSongAuth(hash, audioId, dfid) {
       }
     } catch (e) {}
     if (attempt === 0) {
-      uAuth = await getUserAuth(true);
+      uAuth = await getUserAuth(true, dfid);
       if (!uAuth) break;
     }
   }
@@ -391,7 +474,8 @@ nk.register({
     const c = await syncVipInfo(false);
     const uid = Number((c && c.userid) || 0);
     const token = (c && c.token) || '';
-    const dfid = (c && c.dfid) || randomStr(24);
+    const realDfid = await ensureDfid(false);
+    const dfid = (realDfid && realDfid !== '-') ? realDfid : randomStr(24);
     let err = '没有可用的播放地址（无版权或需要酷狗概念版 VIP）';
 
     // 1) 已登录优先走概念版三段式 Auth 授权取流（user_verify -> authorization -> /tracker/v5/url）
@@ -433,7 +517,7 @@ nk.register({
             if (u) {
               const br = j.bitRate || 0;
               const res = {
-                url: u.replace(/^http:/, 'https:'),
+                url: u,
                 ext: j.extName || (q === 'flac' || q === 'high' ? 'flac' : 'mp3'),
                 kbps: br > 10000 ? Math.round(br / 1000) : br,
                 level,
@@ -453,7 +537,7 @@ nk.register({
       // 2) 回退概念版 /v6/priv_url（一次返回多音质）
       try {
         const j6 = await req('/v6/priv_url', {}, {
-          base: 'http://gateway.kugou.com',
+          base: 'https://gateway.kugou.com',
           router: 'tracker.kugou.com',
           dfid,
           raw: true,
@@ -525,7 +609,7 @@ nk.register({
           if (u) {
             const br = j.bitRate || 0;
             const res = {
-              url: u.replace(/^http:/, 'https:'),
+              url: u,
               ext: j.extName || (q === 'flac' || q === 'high' ? 'flac' : 'mp3'),
               kbps: br > 10000 ? Math.round(br / 1000) : br,
               level,
@@ -959,6 +1043,7 @@ nk.register({
       case 4:
         saveCred({ appid: APPID, userid: d.userid, token: d.token, nick: d.nickname, avatar: pic(d.pic) });
         userAuthCache = null;
+        await ensureDfid(true);
         await syncVipInfo(true);
         return { state: 'done' };
       default: return { state: 'wait' };
