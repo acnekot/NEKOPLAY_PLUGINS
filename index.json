@@ -5,9 +5,9 @@
       "id": "bilibili",
       "name": "哔哩哔哩",
       "type": "source",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "NEKOPLAY",
-      "desc": "哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词，扫码登录后同步收藏夹与稍后再看",
+      "desc": "哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复），扫码登录后同步收藏夹与稍后再看",
       "url": "bilibili.js"
     },
     {
@@ -21,11 +21,11 @@
     },
     {
       "id": "kugou",
-      "name": "酷狗音乐",
+      "name": "酷狗音乐（概念版）",
       "type": "source",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "author": "NEKOPLAY",
-      "desc": "酷狗音源：搜索（单曲/专辑/歌单/热搜/联想）、播放、歌词、推荐歌单、新歌速递、每日推荐、排行榜，扫码登录后看自己的歌单",
+      "desc": "酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、v6/v5 概念版高品与无损取流、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、扫码/Cookie 登录与曲库一键签到领每日 VIP",
       "url": "kugou.js"
     },
     {

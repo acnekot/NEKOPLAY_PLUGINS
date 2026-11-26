@@ -1,9 +1,9 @@
 // @id bilibili
 // @name 哔哩哔哩
 // @type source
-// @version 1.1.0
+// @version 1.2.0
 // @author NEKOPLAY
-// @desc 哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词，扫码登录后同步收藏夹与稍后再看
+// @desc 哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复），扫码登录后同步收藏夹与稍后再看
 // @api 1
 // @search track,artist
 //
@@ -140,6 +140,66 @@ async function biliGet(url, params, useWbi) {
   return j;
 }
 
+function getCsrf() {
+  const c = getCred();
+  if (!c) return '';
+  if (c.bili_jct) return c.bili_jct;
+  if (c.raw) {
+    const m = c.raw.match(/(?:^|;\s*)bili_jct=([^;\s]+)/i);
+    if (m) return m[1];
+  }
+  return '';
+}
+
+async function biliPostForm(url, form) {
+  const cookie = await buildCookie();
+  const headers = { 'User-Agent': UA, Referer: REFERER, Origin: 'https://www.bilibili.com' };
+  if (cookie) headers.Cookie = cookie;
+  const r = await nk.http({ url, method: 'POST', form, headers });
+  if (r.status < 200 || r.status > 299) throw new Error('哔哩哔哩服务返回 ' + r.status);
+  let j;
+  try { j = r.json(); } catch (e) { throw new Error('哔哩哔哩返回的不是 JSON'); }
+  return j;
+}
+
+// bvid -> aid 缓存与评论游标/楼层根映射
+const aidCache = {};
+const commentCursors = {};
+const commentRootMap = {};
+
+async function resolveAid(id) {
+  const bvid = splitId(id).bvid;
+  if (!bvid) throw new Error('无效的视频标识');
+  if (/^av\d+$/i.test(bvid)) return Number(bvid.slice(2));
+  if (/^\d+$/.test(bvid)) return Number(bvid);
+  if (aidCache[bvid]) return aidCache[bvid];
+  const j = await biliGet('https://api.bilibili.com/x/web-interface/view', { bvid }, false);
+  const aid = j && j.code === 0 && j.data && j.data.aid;
+  if (!aid) throw new Error((j && j.message) || '获取视频 aid 失败');
+  aidCache[bvid] = Number(aid);
+  return aidCache[bvid];
+}
+
+function mapComment(r) {
+  const m = r.member || {};
+  const rpid = Number(r.rpid || 0);
+  const root = Number(r.root || 0);
+  if (rpid) commentRootMap[rpid] = root || rpid;
+  const text = (r.content && r.content.message) || '';
+  return {
+    id: rpid,
+    user: cleanText(m.uname || 'B站用户'),
+    uid: String(m.mid || ''),
+    avatar: pic(m.avatar),
+    content: text,
+    liked: Number(r.like || 0),
+    time: Number(r.ctime || 0) * 1000,
+    reply: null,
+    replies: Number(r.rcount || 0),
+    likedByMe: Number(r.action || 0) === 1,
+  };
+}
+
 // ---------- 工具与数据转换 ----------
 function pic(u) {
   if (!u) return null;
@@ -176,6 +236,7 @@ function splitId(id) {
 
 function mapSearchVideo(v) {
   const bvid = v.bvid || ('av' + v.aid);
+  if (v.bvid && v.aid) aidCache[v.bvid] = Number(v.aid);
   const artist = cleanText(v.author || 'UP主');
   return {
     id: bvid,
@@ -191,6 +252,7 @@ function mapSearchVideo(v) {
 
 function mapArchiveVideo(v) {
   const bvid = v.bvid || ('av' + v.aid);
+  if (v.bvid && v.aid) aidCache[v.bvid] = Number(v.aid);
   const owner = v.owner || {};
   const artist = cleanText(owner.name || v.author || 'UP主');
   const mid = owner.mid || v.mid;
@@ -387,6 +449,7 @@ nk.register({
     const j = await biliGet('https://api.bilibili.com/x/web-interface/view', { bvid: cleanBvid }, false);
     if (!j || j.code !== 0 || !j.data) throw new Error((j && j.message) || '获取视频详情失败');
     const v = j.data;
+    if (v.bvid && v.aid) aidCache[v.bvid] = Number(v.aid);
     const owner = v.owner || {};
     const artist = cleanText(owner.name || 'UP主');
     const cover = pic(v.pic);
@@ -550,6 +613,112 @@ nk.register({
       return out;
     }
     return [];
+  },
+
+  // ---------- 评论区 ----------
+  async comments(id, hot, offset) {
+    const aid = await resolveAid(id);
+    const key = `${aid}:${hot ? 'hot' : 'new'}`;
+    let cursorOffset = '';
+    if (offset > 0) {
+      const st = commentCursors[key];
+      if (!st || st.isEnd || !st.nextOffset) return { items: [], total: (st && st.total) || 0 };
+      cursorOffset = st.nextOffset;
+    } else {
+      delete commentCursors[key];
+    }
+    const mode = hot ? 3 : 2;
+    let j = await biliGet('https://api.bilibili.com/x/v2/reply/wbi/main', {
+      oid: aid,
+      type: 1,
+      mode,
+      pagination_str: JSON.stringify({ offset: cursorOffset }),
+      plat: 1,
+      web_location: 1315875,
+    }, true).catch(() => null);
+    if (!j || j.code !== 0 || !j.data) {
+      // 兜底非 WBI 旧接口
+      const nextNum = offset > 0 ? ((commentCursors[key] && commentCursors[key].nextNum) || 0) : 0;
+      j = await biliGet('https://api.bilibili.com/x/v2/reply/main', { oid: aid, type: 1, mode, next: nextNum, ps: 20 }, false);
+    }
+    if (!j || j.code !== 0) {
+      if (j && j.code === 12002) return { items: [], total: 0 }; // 评论区已关闭
+      throw new Error((j && j.message) || '获取 B 站评论失败');
+    }
+    const d = j.data || {};
+    const cur = d.cursor || {};
+    const total = Number(cur.all_count || 0);
+    const nextOffset = (cur.pagination_reply && cur.pagination_reply.next_offset) || '';
+    const isEnd = !!cur.is_end || (!nextOffset && !(cur.next > 0));
+    commentCursors[key] = { nextOffset, nextNum: cur.next || 0, isEnd, total };
+    const seen = {};
+    const items = [];
+    const pushRep = (r) => {
+      if (!r || !r.rpid || seen[r.rpid]) return;
+      seen[r.rpid] = 1;
+      items.push(mapComment(r));
+    };
+    if (offset === 0) {
+      const tops = (d.top_replies || []).concat((d.top && d.top.upper) ? [d.top.upper] : []);
+      tops.forEach(pushRep);
+    }
+    (d.replies || []).forEach(pushRep);
+    return { items, total };
+  },
+
+  async commentFloor(id, parent, cursor) {
+    const aid = await resolveAid(id);
+    const pn = cursor && cursor > 0 ? Number(cursor) : 1;
+    const ps = 20;
+    const j = await biliGet('https://api.bilibili.com/x/v2/reply/reply', {
+      type: 1,
+      oid: aid,
+      root: parent,
+      pn,
+      ps,
+    }, false);
+    if (!j || j.code !== 0) throw new Error((j && j.message) || '获取楼中楼回复失败');
+    const d = j.data || {};
+    const replies = d.replies || [];
+    const items = replies.map(mapComment);
+    const page = d.page || {};
+    const totalCount = Number(page.count || 0);
+    const hasMore = replies.length > 0 && (pn * ps < totalCount);
+    return { items, next: hasMore ? pn + 1 : -1 };
+  },
+
+  async commentLike(id, cid, on) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号后再点赞');
+    const aid = await resolveAid(id);
+    const j = await biliPostForm('https://api.bilibili.com/x/v2/reply/action', {
+      type: '1',
+      oid: String(aid),
+      rpid: String(cid),
+      action: on ? '1' : '0',
+      csrf,
+    });
+    if (!j || j.code !== 0) throw new Error((j && j.message) || '点赞操作失败');
+  },
+
+  async commentPost(id, content, replyTo) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号后再发表评论');
+    const aid = await resolveAid(id);
+    const form = {
+      type: '1',
+      oid: String(aid),
+      message: String(content || ''),
+      plat: '1',
+      csrf,
+    };
+    if (replyTo) {
+      const root = commentRootMap[Number(replyTo)] || Number(replyTo);
+      form.root = String(root);
+      form.parent = String(replyTo);
+    }
+    const j = await biliPostForm('https://api.bilibili.com/x/v2/reply/add', form);
+    if (!j || j.code !== 0) throw new Error((j && j.message) || '发送评论失败');
   },
 
   async account() {
