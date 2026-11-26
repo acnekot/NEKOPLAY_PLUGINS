@@ -23,7 +23,7 @@
       "id": "geom_motion",
       "name": "点线面几何动效",
       "type": "motion",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "NEKOPLAY",
       "desc": "独立点线面几何动效插件（内置实机交互演示台）：正方形封面与可选页面容器从左上原点 (0,0) 先拉成顶边光束线，再向下扫面展开（支持切歌/收起反向缩回点与三套 PRTS 风格预设热切换）",
       "url": "geom_motion.js"

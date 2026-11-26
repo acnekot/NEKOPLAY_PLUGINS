@@ -1,7 +1,7 @@
 // @id geom_motion
 // @name 点线面几何动效
 // @type motion
-// @version 1.0.1
+// @version 1.0.2
 // @minHost 0.6.8
 // @permissions motion.profile, storage
 // @author NEKOPLAY
@@ -137,11 +137,11 @@ nk.registerMotion({
             { type: 'tag', text: isEn ? 'LIVE ON-DEVICE DEMO' : '实机交互演示台（120fps 原生 GPU 渲染）' },
             {
               type: 'row', gap: 14, children: [
-                { type: 'cover', url: demoUrl, size: 156, title: demoTitle, revealKey: revealKey, geomPreview: true },
+                { type: 'cover', url: demoUrl, size: (ctx && ctx.wide) ? 156 : 112, title: demoTitle, revealKey: revealKey, geomPreview: true },
                 {
                   type: 'column', grow: true, gap: 8, children: [
                     { type: 'text', text: demoTitle, size: 16, weight: 800, lines: 2 },
-                    { type: 'text', text: demoSub, size: 12, tone: 'sub', lines: 2 },
+                    { type: 'text', text: demoSub, size: 12, tone: 'sub', lines: 3 },
                     { type: 'text', text: 'STAGE: ● 点 → ━ 线 (' + Math.round(fx.geomLineRatio * 100) + '%) → ■ 面', size: 11, tone: 'primary', mono: true },
                     {
                       type: 'row', gap: 8, children: [
