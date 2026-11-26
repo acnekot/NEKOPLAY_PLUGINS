@@ -56,6 +56,15 @@
       "url": "qqmusic.js"
     },
     {
+      "id": "scrub",
+      "name": "长按变速快进",
+      "type": "feature",
+      "version": "1.0.0",
+      "author": "NEKOPLAY",
+      "desc": "长按「上一首 / 下一首」实时变速快进与快退（支持磁带变速变调 / 原调倍速 / 极速巡航预设与长按触发时长热调；关闭或删除插件即恢复纯点击切歌）",
+      "url": "scrub.js"
+    },
+    {
       "id": "vibe_board",
       "name": "听歌氛围看板 (v2 Demo)",
       "type": "page",
