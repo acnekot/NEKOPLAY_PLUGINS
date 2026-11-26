@@ -1,10 +1,12 @@
 // @id netease
 // @name 网易云音乐
 // @type source
-// @version 1.0.1
+// @version 1.1.0
+// @minHost 0.6.7
+// @permissions network, storage
 // @author NEKOPLAY
-// @desc 网易云音源：搜索、播放、逐字歌词、日推、私人 FM、歌单广场、排行榜、评论、MV、电台、云盘，扫码登录后同步歌单和喜欢
-// @api 1
+// @desc 网易云完整音源：搜索、播放、逐字歌词、日推、私人 FM、歌单广场、排行榜、评论与楼中楼、MV、电台、云盘、个人主页与听歌排行，扫码登录后同步歌单和喜欢
+// @api 2
 // @search track,album,artist,playlist,user,lyric
 //
 // 用网页端加密接口（weapi）。为了兼容老数据，网易云的 id 在本体里不加插件前缀。
@@ -278,6 +280,7 @@ nk.register({
   },
 
   // ---------- 登录 ----------
+  async loginModes() { return [{ id: 'qr', name: '网易云音乐 App 扫码' }]; },
   async loginQr() {
     const key = (await api('/weapi/login/qrcode/unikey', { type: 1 })).unikey; if (!key) throw new Error('获取二维码失败');
     return { text: 'https://music.163.com/login?codekey=' + key, key, hint: '用网易云音乐 App 扫码，并在手机上确认' };

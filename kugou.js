@@ -1,11 +1,11 @@
 // @id kugou
 // @name 酷狗音乐（概念版）
 // @type source
-// @version 2.3.0
-// @minHost 0.6.8
+// @version 2.4.0
+// @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册设备 dfid 防风控、概念版三段式 Auth 授权取流（完整支持概念版 VIP 与无损，保留原生 CDN 协议防 TLS 报错）、单曲/专辑/歌手/歌单搜索、每日推荐、私人 FM、个人主页/听歌排行与曲库一键签到领每日 VIP
+// @desc 酷狗概念版完整音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册 dfid 防风控、三段式 Auth VIP 取流、搜索（单曲/专辑/歌手/歌单）、热搜联想、歌单广场、排行榜、新碟/新歌、每日推荐、私人 FM、评论区与楼中楼、相似歌曲、歌手专辑与 MV、云盘、歌单管理/喜欢/关注、个人主页/听歌排行与曲库一键签到领 VIP
 // @api 2
 // @search track,album,artist,playlist
 //
@@ -431,6 +431,55 @@ async function getSongAuth(hash, audioId, dfid) {
   return null;
 }
 
+const CMT_CODE = 'fc4be23b4e972707f36b8a828a93ba8a';
+const cmtSpecialMap = {};
+const tagIdMap = {};
+const plListIdMap = {};
+const plFileIdMap = {};
+const trackMetaMap = {};
+
+function rememberTrackMeta(t) {
+  if (t && t.id) trackMetaMap[t.id] = { title: t.title || '', artist: t.artist || '' };
+  return t;
+}
+
+function parseKugouTime(s) {
+  if (!s) return 0;
+  if (typeof s === 'number') return s > 1e12 ? s : s * 1000;
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return 0;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] - 8, +m[5], +m[6]);
+}
+
+function mapKgComment(x) {
+  const cid = Number(x.id || 0);
+  if (cid && x.special_id) cmtSpecialMap[cid] = String(x.special_id);
+  const lk = x.like || {};
+  return {
+    id: cid,
+    user: x.user_name || '酷狗用户',
+    uid: String(x.user_id || ''),
+    avatar: pic(x.user_pic, 165),
+    content: x.content || '',
+    liked: Number(lk.count || lk.likenum || 0),
+    time: parseKugouTime(x.addtime),
+    reply: x.pcontent ? ('@' + (x.puser || '用户') + '：' + x.pcontent) : null,
+    replies: Number(x.reply_num || 0),
+    likedByMe: !!lk.haslike,
+  };
+}
+
+/** 酷狗 AES-128-CBC 加密（16 字符随机 key，hex 输出，用于关注/取消关注） */
+function kgAesHex(obj) {
+  const keyStr = randomStr(16);
+  const md5Key = nk.md5(keyStr);
+  const b64 = nk.aes({ data: JSON.stringify(obj), key: md5Key.slice(0, 32), iv: md5Key.slice(16, 32), mode: 'cbc', padding: true });
+  const raw = nk.base64.decode(b64);
+  let hex = '';
+  for (let i = 0; i < raw.length; i++) hex += (raw.charCodeAt(i) & 0xff).toString(16).padStart(2, '0');
+  return { key: keyStr, str: hex };
+}
+
 nk.register({
   async search(q, type, page) {
     page = page || 1;
@@ -695,22 +744,79 @@ nk.register({
     }));
   },
 
-  async newAlbums() {
+  async newAlbums(area, offset) {
     const c = cred();
+    const page = Math.floor((offset || 0) / 30) + 1;
     const j = await req('/musicadservice/v1/mobile_newalbum_sp', {}, {
-      body: { apiver: APIVER, token: (c && c.token) || '', page: 1, pagesize: 30, withpriv: 1 },
+      body: { apiver: APIVER, token: (c && c.token) || '', page, pagesize: 30, withpriv: 1 },
     });
     const d = j.data || {};
-    const raw = [].concat(d.chn || [], d.eur || [], d.jpn || [], d.kor || [], d.list || []);
+    const a = String(area || 'ALL').toUpperCase();
+    const raw = a === 'ZH' ? (d.chn || [])
+      : a === 'EA' ? (d.eur || [])
+      : a === 'JP' ? (d.jpn || [])
+      : a === 'KR' ? (d.kor || [])
+      : [].concat(d.chn || [], d.eur || [], d.jpn || [], d.kor || [], d.list || []);
     const seen = {};
-    return raw.filter(a => a && a.albumid && !seen[a.albumid] && (seen[a.albumid] = 1)).slice(0, 30).map(a => ({
-      id: 'al' + a.albumid,
-      name: a.albumname || '',
-      cover: pic(a.imgurl),
-      count: a.songcount || 0,
-      year: (a.publishtime || '').slice(0, 4),
-      artist: a.singername || '',
+    return raw.filter(x => x && x.albumid && !seen[x.albumid] && (seen[x.albumid] = 1)).slice(0, 30).map(x => ({
+      id: 'al' + x.albumid,
+      name: x.albumname || '',
+      cover: pic(x.imgurl),
+      count: x.songcount || 0,
+      year: (x.publishtime || '').slice(0, 4),
+      artist: x.singername || '',
     }));
+  },
+
+  async categories() {
+    const j = await req('/pubsongs/v1/get_tags_by_type', {}, { body: { tag_type: 'collection', tag_id: 0, source: 3 } });
+    const out = ['全部', 'Hi-Res'];
+    tagIdMap['全部'] = 0;
+    tagIdMap['Hi-Res'] = 11292;
+    (j.data || []).forEach(g => {
+      (g.son || []).forEach(t => {
+        if (t && t.tag_name && t.tag_id) {
+          tagIdMap[t.tag_name] = Number(t.tag_id);
+          if (!out.includes(t.tag_name)) out.push(t.tag_name);
+        }
+      });
+    });
+    return out.slice(0, 32);
+  },
+
+  async square(cat, offset) {
+    const page = Math.floor((offset || 0) / 30) + 1;
+    if (cat && !tagIdMap[cat] && cat !== '全部') await this.categories().catch(() => {});
+    const cid = tagIdMap[cat] || 0;
+    const t = String(Math.floor(Date.now() / 1000));
+    const j = await req('/v2/special_recommend', {}, {
+      router: 'specialrec.service.kugou.com',
+      body: {
+        appid: APPID,
+        mid: mid(),
+        clientver: CLIENTVER,
+        platform: 'android',
+        clienttime: t,
+        userid: (cred() && cred().userid) || 0,
+        module_id: 1,
+        page,
+        pagesize: 30,
+        key: signParamsKey(t),
+        special_recommend: { withtag: 1, withsong: 1, sort: 1, ugc: 1, is_selected: 0, withrecommend: 1, area_code: 1, categoryid: cid },
+        req_multi: 1,
+        retrun_min: 5,
+        return_special_falg: 1,
+      },
+    });
+    const list = (j.data && j.data.special_list) || [];
+    const items = list.map(p => ({
+      id: p.global_collection_id ? String(p.global_collection_id) : ('sp' + p.specialid),
+      name: p.specialname || '',
+      count: p.songcount || (p.songs && p.songs.length) || 0,
+      cover: pic(p.flexible_cover || p.imgurl),
+      desc: p.intro || '',
+    }));
+    return { items, more: items.length >= 20 };
   },
 
   async newSongs(area) {
@@ -787,7 +893,11 @@ nk.register({
       const j = await req('/pubsongs/v2/get_other_list_file_nofilt', { area_code: 1, begin_idx: (page - 1) * 300, plat: 1, type: 1, mode: 1, personal_switch: 1, extend_fields: 'abtags,hot_cmt,popularization', pagesize: 300, global_collection_id: id });
       const d = j.data;
       if (!d) break;
-      const l = (d.songs || []).map(listSong);
+      const l = (d.songs || []).map(x => {
+        const s = rememberTrackMeta(listSong(x));
+        if (x.fileid) plFileIdMap[id + '|' + s.id] = Number(x.fileid);
+        return s;
+      });
       out.push(...l);
       if (!l.length || out.length >= (d.count || out.length)) break;
     }
@@ -836,6 +946,125 @@ nk.register({
       albums: info.album_count || 0,
       tracks,
     };
+  },
+
+  async artistAlbums(id, offset, limit) {
+    const aid = String(id || '').replace(/^ar/, '');
+    const ps = limit || 30;
+    const page = Math.floor((offset || 0) / ps) + 1;
+    const j = await req('/kmr/v1/author/albums', {}, {
+      router: 'openapi.kugou.com',
+      headers: { 'kg-tid': '36' },
+      body: { author_id: aid, pagesize: ps, page, sort: 1, category: 1, area_code: 'all' },
+    });
+    const list = (j.data || []).map(a => ({
+      id: 'al' + a.album_id,
+      name: a.album_name || '',
+      cover: pic(a.sizable_cover),
+      count: a.song_count || 0,
+      year: String(a.publish_date || '').slice(0, 4),
+      artist: a.author_name || '',
+    }));
+    return { items: list, more: (offset || 0) + list.length < Number(j.total || 0) };
+  },
+
+  async artistMvs(id) {
+    const aid = String(id || '').replace(/^ar/, '');
+    const j = await req('/kmr/v1/author/videos', { author_id: aid, is_fanmade: '', tag_idx: '', pagesize: 30, page: 1 }, {
+      base: 'https://openapicdn.kugou.com',
+    });
+    return (j.data || []).map(v => {
+      const h = v.mkv_qhd_hash || v.mkv_sd_hash || v.hd_hash || v.mv_hash || '';
+      return {
+        id: h || String(v.video_id || ''),
+        name: v.video_name || '',
+        cover: pic(v.hdpic || v.img),
+        artist: v.author_name || '',
+        duration: Number(v.timelength || 0),
+        plays: Number(v.play_count || v.history_heat || 0),
+      };
+    }).filter(v => v.id && v.name);
+  },
+
+  async mvUrl(hash) {
+    const j = await req('/v2/interface/index', { backupdomain: 1, cmd: 123, ext: 'mp4', ismp3: 0, hash: String(hash || ''), pid: 1, type: 1 }, {
+      router: 'trackermv.kugou.com',
+      withKey: true,
+      raw: true,
+    });
+    const d = j.mvdata || {};
+    const pick = d.rq || d.sq || d.hd || d.le || {};
+    return pick.downurl || (pick.backupdownurl && pick.backupdownurl[0]) || null;
+  },
+
+  async simiSongs(id) {
+    const [, audioId] = String(id || '').split(':');
+    if (!audioId || audioId === '0') return [];
+    const p = {
+      album_audio_id: Number(audioId),
+      appid: 1005,
+      area_code: 1,
+      clientver: 12329,
+      page: 1,
+      pagesize: 20,
+      show_input: 1,
+      show_type: 0,
+      sort: 1,
+      type: 0,
+      version: 1,
+    };
+    const salt = 'OIlwieks28dk2k092lksi2UIkp';
+    p.signature = nk.md5(salt + Object.keys(p).sort().map(k => k + '=' + p[k]).join('') + salt);
+    const url = 'https://listkmrp3cdnretry.kugou.com/v3/album_audio/related?' + Object.keys(p).map(k => k + '=' + enc(String(p[k]))).join('&');
+    const r = await nk.http({ url, headers: { 'User-Agent': UA } });
+    let j;
+    try { j = r.json(); } catch (e) { return []; }
+    const list = (j && j.data && (j.data.lists || j.data.list || j.data)) || [];
+    return (Array.isArray(list) ? list : []).map(listSong).filter(t => t.title);
+  },
+
+  async comments(id, hot, offset) {
+    const [, audioId] = String(id || '').split(':');
+    if (!audioId || audioId === '0') return { items: [], total: 0 };
+    const page = Math.floor((offset || 0) / 20) + 1;
+    const j = await req('/mcomment/v1/cmtlist', {
+      ver: 6,
+      mixsongid: Number(audioId),
+      need_show_image: 1,
+      p: page,
+      pagesize: 20,
+      show_classify: 1,
+      show_hotword_list: 1,
+      extdata: '0',
+      code: CMT_CODE,
+    }, { method: 'POST', raw: true });
+    if (!j || j.status !== 1) return { items: [], total: 0 };
+    const raw = (hot && page === 1 && Array.isArray(j.weightList) && j.weightList.length)
+      ? j.weightList
+      : (j.list || []);
+    return { items: raw.map(mapKgComment), total: Number(j.count || j.combine_count || raw.length) };
+  },
+
+  async commentFloor(id, parent, cursor) {
+    const [, audioId] = String(id || '').split(':');
+    const page = cursor && cursor > 0 ? Number(cursor) : 1;
+    const specialId = cmtSpecialMap[Number(parent)] || '';
+    const params = {
+      need_show_image: 1,
+      p: page,
+      pagesize: 20,
+      show_classify: 1,
+      show_hotword_list: 1,
+      code: CMT_CODE,
+      tid: Number(parent),
+    };
+    if (specialId) params.childrenid = specialId;
+    if (audioId && audioId !== '0') params.mixsongid = Number(audioId);
+    const j = await req('/mcomment/v1/hot_replylist', params, { method: 'POST', raw: true });
+    const raw = (j && j.list) || [];
+    const items = raw.map(mapKgComment);
+    const total = Number((j && (j.count || j.total)) || 0);
+    return { items, next: items.length >= 20 && page * 20 < total ? page + 1 : -1 };
   },
 
   // ---------- 账号、用户主页与概念版每日领 VIP ----------
@@ -938,15 +1167,116 @@ nk.register({
       router: 'cloudlist.service.kugou.com',
       body: { userid: c.userid, token: c.token, total_ver: 979, type: 2, page: 1, pagesize: 100 },
     });
-    return ((j.data && j.data.info) || []).map(p => ({
-      id: String(p.global_collection_id),
-      name: p.name,
-      count: p.count,
-      cover: pic(p.pic),
-      liked: p.name === '我喜欢' || p.type === 1,
-      mine: (p.list_create_userid || c.userid) === c.userid,
-    })).sort((a, b) => (b.liked ? 1 : 0) - (a.liked ? 1 : 0));
+    return ((j.data && j.data.info) || []).map(p => {
+      const gid = String(p.global_collection_id || '');
+      if (gid && p.listid) plListIdMap[gid] = Number(p.listid);
+      return {
+        id: gid,
+        name: p.name,
+        count: p.count,
+        cover: pic(p.pic),
+        liked: p.name === '我喜欢' || p.type === 1,
+        mine: (p.list_create_userid || c.userid) === c.userid,
+      };
+    }).sort((a, b) => (b.liked ? 1 : 0) - (a.liked ? 1 : 0));
   },
+
+  async createPlaylist(name, priv) {
+    const c = cred();
+    if (!c || !c.token || !c.userid) throw new Error('请先登录酷狗概念版账号');
+    const t = Math.floor(Date.now() / 1000);
+    const j = await req('/cloudlist.service/v5/add_list', { last_time: t, last_area: 'gztx', userid: c.userid, token: c.token }, {
+      body: {
+        userid: c.userid, token: c.token, total_ver: 0, name: String(name || '新建歌单'),
+        type: 0, source: 1, is_pri: priv ? 1 : 0, list_create_userid: c.userid,
+        list_create_listid: 0, list_create_gid: '', from_shupinmv: 0,
+      },
+    });
+    const d = (j.data && j.data.info) || j.data || {};
+    const gid = String(d.global_collection_id || d.listid || '');
+    if (gid && d.listid) plListIdMap[gid] = Number(d.listid);
+    return gid;
+  },
+
+  async editPlaylist(id, op, ids) {
+    const c = cred();
+    if (!c || !c.token || !c.userid) throw new Error('请先登录酷狗概念版账号');
+    if (!plListIdMap[id]) await this.myPlaylists();
+    const listid = plListIdMap[id];
+    if (!listid) throw new Error('未找到目标歌单 listid');
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (op === 'del') {
+      const fileids = list.map(tid => plFileIdMap[id + '|' + tid]).filter(Boolean).map(fid => ({ fileid: fid }));
+      if (!fileids.length) throw new Error('请先打开歌单加载歌曲后再移除');
+      await req('/v4/delete_songs', {}, {
+        router: 'cloudlist.service.kugou.com',
+        body: { listid, userid: c.userid, data: fileids, type: 0, token: c.token, list_ver: 0 },
+      });
+      return;
+    }
+    const t = Math.floor(Date.now() / 1000);
+    const resource = list.map(tid => {
+      const [hash, audioId, albumId] = String(tid || '').split(':');
+      const m = trackMetaMap[tid] || {};
+      return {
+        number: 1,
+        name: m.artist && m.title ? `${m.artist} - ${m.title}` : (m.title || hash || ''),
+        hash: (hash || '').toUpperCase(),
+        size: 0, sort: 0, timelen: 0, bitrate: 0,
+        album_id: Number(albumId) || 0,
+        mixsongid: Number(audioId) || 0,
+      };
+    });
+    await req('/cloudlist.service/v6/add_song', { last_time: t, last_area: 'gztx', userid: c.userid, token: c.token }, {
+      body: { userid: c.userid, token: c.token, listid, list_ver: 0, type: 0, slow_upload: 1, scene: 'false;null', data: resource },
+    });
+  },
+
+  async like(id, on) {
+    const c = cred();
+    if (!c || !c.token) throw new Error('请先登录酷狗概念版账号');
+    const pls = await this.myPlaylists();
+    const likedPl = pls.find(p => p.liked);
+    if (!likedPl) throw new Error('未找到酷狗「我喜欢」歌单');
+    await this.editPlaylist(likedPl.id, on ? 'add' : 'del', [id]);
+  },
+
+  async followArtist(id, on) {
+    const c = cred();
+    if (!c || !c.token || !c.userid) throw new Error('请先登录酷狗概念版账号');
+    const singerid = Number(String(id || '').replace(/^ar/, ''));
+    const t = Math.floor(Date.now() / 1000);
+    const encData = kgAesHex({ singerid, token: c.token });
+    await req(on ? '/followservice/v3/follow_singer' : '/followservice/v3/unfollow_singer', { clienttime: t }, {
+      body: {
+        plat: 0, userid: Number(c.userid), singerid, source: 7,
+        p: rsaLitePkcs1Encrypt({ clienttime: t, key: encData.key }),
+        params: encData.str,
+      },
+    });
+  },
+
+  async cloud() {
+    const c = cred();
+    if (!c || !c.token || !c.userid) return [];
+    const aesSecret = randomStr(6);
+    const km = nk.md5(aesSecret);
+    const aesKey = km.slice(0, 16), aesIv = km.slice(16, 32);
+    const encB64 = nk.aes({ data: JSON.stringify({ page: 1, pagesize: 50, getkmr: 1 }), key: aesKey, iv: aesIv, mode: 'cbc', padding: true });
+    const t = Math.floor(Date.now() / 1000);
+    const p = rsaLitePkcs1Encrypt({ aes: aesSecret, uid: Number(c.userid), token: c.token }).toUpperCase();
+    const q = { clienttime: t, mid: mid(), key: signParamsKey(String(t)), clientver: CLIENTVER, appid: APPID, p };
+    const url = 'https://mcloudservice.kugou.com/v1/get_list?' + Object.keys(q).map(k => k + '=' + enc(String(q[k]))).join('&');
+    const r = await nk.http({ url, method: 'POST', body: encB64, binary: true, headers: { 'User-Agent': UA, 'Content-Type': 'application/octet-stream' } });
+    if (r.status !== 200 || !r.bodyBase64) return [];
+    try {
+      const dec = nk.aes({ dataBase64: r.bodyBase64, key: aesKey, iv: aesIv, mode: 'cbc', padding: true, decrypt: true });
+      const j = JSON.parse(nk.base64.decode(dec));
+      return ((j.data && j.data.list) || []).map(listSong);
+    } catch (e) { return []; }
+  },
+
+  async loginModes() { return [{ id: 'qr', name: '酷狗概念版扫码' }]; },
 
   /** 概念版每日签到领免费 VIP + 自动尝试升级概念版 VIP */
   async signin() {

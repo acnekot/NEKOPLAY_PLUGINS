@@ -1,10 +1,12 @@
 // @id qqmusic
 // @name QQ 音乐
 // @type source
-// @version 1.7.1
+// @version 1.8.0
+// @minHost 0.6.7
+// @permissions network, storage
 // @author NEKOPLAY
-// @desc QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论与点赞、相似推荐、个人主页、听歌排行与播放上报
-// @api 1
+// @desc QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论/楼中楼/点赞/发表、相似推荐、个人主页、听歌排行与播放上报
+// @api 2
 // @search track,album,artist,playlist
 //
 // 接口说明见 docs/plugin-api.md。协议笔记见 docs/qq-protocol.md（只记事实，不含第三方代码）。
@@ -781,6 +783,45 @@ nk.register({
       };
     }));
     return { items, total: cl.CommentTotal || items.length };
+  },
+  async commentFloor(mid, parent, cursor) {
+    if (!ids[mid]) await details([mid]);
+    const cmId = cmIds[parent];
+    if (!ids[mid] || !cmId) return { items: [], next: -1 };
+    const page = cursor && cursor > 0 ? Number(cursor) : 0;
+    const size = 20;
+    const d = await call('music.globalComment.CommentRead', 'GetSubCommentList', {
+      BizType: 1, BizId: String(ids[mid]), RootCmId: cmId, PageSize: size, PageNum: page,
+    });
+    const cl = d.CommentList || d.SubCommentList || {};
+    const list = cl.Comments || cl.SubComments || [];
+    const items = uniq(list.map((c, idx) => {
+      const rawId = String(c.CmId || c.CommentId || ('sub_' + page + '_' + idx + '_' + (c.PubTime || 0)));
+      const numId = hash33(rawId, 5381) || (idx + 1);
+      cmIds[numId] = rawId;
+      return {
+        id: numId,
+        user: c.Nick || 'QQ音乐用户',
+        uid: String(c.EncryptUin || ''),
+        avatar: https(c.Avatar || ''),
+        content: c.Content || '',
+        liked: c.PraiseNum || 0,
+        time: (c.PubTime || 0) * 1000,
+        reply: c.ReplyNick ? ('@' + c.ReplyNick + '：') : null,
+        replies: 0,
+        likedByMe: !!c.IsPraised,
+      };
+    }));
+    const total = Number(cl.CommentTotal || 0);
+    return { items, next: items.length >= size && (page + 1) * size < total ? page + 1 : -1 };
+  },
+  async commentPost(mid, content, replyTo) {
+    if (!cred()) throw new Error('请先登录 QQ 音乐');
+    if (!ids[mid]) await details([mid]);
+    if (!ids[mid]) throw new Error('未找到歌曲信息');
+    const param = { BizType: 1, BizId: String(ids[mid]), Content: String(content || ''), ContentType: 0 };
+    if (replyTo && cmIds[replyTo]) param.ReplyCmId = cmIds[replyTo];
+    await call('music.globalComment.CommentWrite', 'SendComment', param);
   },
   async commentLike(mid, cid, on) {
     if (!cred()) throw new Error('请先登录 QQ 音乐');

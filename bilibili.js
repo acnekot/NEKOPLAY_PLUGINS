@@ -1,11 +1,13 @@
 // @id bilibili
 // @name 哔哩哔哩
 // @type source
-// @version 1.3.0
+// @version 1.4.0
+// @minHost 0.6.7
+// @permissions network, storage
 // @author NEKOPLAY
-// @desc 哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复）与用户主页，扫码登录后同步收藏夹与稍后再看
-// @api 1
-// @search track,artist
+// @desc 哔哩哔哩完整音源（参考 BBPlayer）：WBI 签名、视频/UP主/用户搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、每日推荐/随机电台/相似推荐/新歌榜单、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复）、用户主页、点赞/关注/收藏夹管理，扫码登录后同步收藏夹与稍后再看
+// @api 2
+// @search track,artist,user
 //
 // 接口与 WBI 签名逻辑参考开源项目 bbplayer-app/BBPlayer，按 NEKOPLAY 插件接口（v1）使用 QuickJS 重写。
 // 歌曲 id：<bvid> 或 <bvid>:<cid>（多P视频带 cid）；歌手 id：<mid>；歌单 id：rank:<rid> / popular / fav:<media_id> / toview
@@ -280,7 +282,7 @@ function fmtLrcTime(sec) {
 nk.register({
   async search(q, type, page) {
     page = page || 1;
-    if (type === 'artist') {
+    if (type === 'artist' || type === 'user') {
       const j = await biliGet('https://api.bilibili.com/x/web-interface/wbi/search/type', {
         search_type: 'bili_user',
         keyword: q,
@@ -288,7 +290,11 @@ nk.register({
         page_size: 20,
       }, true);
       if (j.code !== 0) throw new Error(j.message || ('B 站搜索失败（' + j.code + '）'));
-      return ((j.data && j.data.result) || []).map(u => ({
+      const list = (j.data && j.data.result) || [];
+      if (type === 'user') {
+        return list.map(u => ({ uid: String(u.mid), name: cleanText(u.uname), avatar: pic(u.upic), signature: cleanText(u.usign || '') }));
+      }
+      return list.map(u => ({
         id: String(u.mid),
         name: cleanText(u.uname),
         cover: pic(u.upic),
@@ -513,13 +519,14 @@ nk.register({
     };
   },
 
-  async artistAlbums(mid, page) {
-    const pn = page || 1;
+  async artistAlbums(mid, offset, limit) {
+    const ps = limit || 20;
+    const pn = Math.floor((offset || 0) / ps) + 1;
     const j = await biliGet('https://api.bilibili.com/x/polymer/web-space/seasons_series_list', {
-      mid, page_num: pn, page_size: 20,
+      mid, page_num: pn, page_size: ps,
     }, false).catch(() => null);
     const box = j && j.code === 0 && j.data && j.data.items_lists;
-    if (!box) return [];
+    if (!box) return { items: [], more: false };
     const out = [];
     (box.seasons_list || []).forEach(s => {
       const m = s.meta || {};
@@ -543,7 +550,92 @@ nk.register({
         });
       }
     });
-    return out;
+    const total = Number((box.page && box.page.total) || out.length);
+    return { items: out, more: (offset || 0) + out.length < total };
+  },
+
+  async recPlaylists() { return await this.toplists(); },
+
+  async daily() {
+    if (getCred()) {
+      const j = await biliGet('https://api.bilibili.com/x/web-interface/wbi/index/top/feed/rcmd', { ps: 20, fresh_type: 3 }, true).catch(() => null);
+      const list = (j && j.code === 0 && j.data && j.data.item) || [];
+      if (list.length) return list.filter(v => v && (v.bvid || v.id)).map(mapArchiveVideo);
+    }
+    return await this.playlist('rank:3');
+  },
+
+  async fm() {
+    const list = await this.playlist('rank:3');
+    return list.slice().sort(() => Math.random() - 0.5).slice(0, 12);
+  },
+
+  async newSongs(area) {
+    const map = { 0: 'rank:3', 7: 'rank:28', 96: 'rank:31', 8: 'rank:30', 16: 'rank:59' };
+    return await this.playlist(map[Number(area) || 0] || 'rank:3');
+  },
+
+  async simiSongs(id) {
+    const bvid = splitId(id).bvid;
+    const j = await biliGet('https://api.bilibili.com/x/web-interface/archive/related', { bvid }, false).catch(() => null);
+    if (!j || j.code !== 0) return [];
+    return (j.data || []).slice(0, 20).map(mapArchiveVideo);
+  },
+
+  async like(id, on) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号后再点赞');
+    const aid = await resolveAid(id);
+    const j = await biliPostForm('https://api.bilibili.com/x/web-interface/archive/like', { aid: String(aid), like: on ? '1' : '2', csrf });
+    if (!j || (j.code !== 0 && j.code !== 65006)) throw new Error((j && j.message) || '点赞操作失败');
+  },
+
+  async followArtist(mid, on) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号后再关注');
+    const j = await biliPostForm('https://api.bilibili.com/x/relation/modify', { fid: String(mid), act: on ? '1' : '2', re_src: '11', csrf });
+    if (!j || j.code !== 0) throw new Error((j && j.message) || '关注操作失败');
+  },
+
+  async followUser(mid, on) { return await this.followArtist(mid, on); },
+
+  async subArtists() {
+    const uid = String(nk.store.get('uid') || '');
+    if (!uid) return [];
+    const j = await biliGet('https://api.bilibili.com/x/relation/followings', { vmid: uid, pn: 1, ps: 50 }, false).catch(() => null);
+    const list = (j && j.code === 0 && j.data && j.data.list) || [];
+    return list.map(u => ({ id: String(u.mid), name: cleanText(u.uname), cover: pic(u.face), desc: cleanText(u.sign || ''), followed: true }));
+  },
+
+  async createPlaylist(name, priv) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号后再新建收藏夹');
+    const j = await biliPostForm('https://api.bilibili.com/x/v3/fav/folder/add', { title: String(name || '新建收藏夹'), privacy: priv ? '1' : '0', csrf });
+    if (!j || j.code !== 0 || !j.data) throw new Error((j && j.message) || '新建收藏夹失败');
+    return 'fav:' + j.data.id;
+  },
+
+  async deletePlaylist(id) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号');
+    const fid = String(id || '').replace(/^fav:/, '');
+    const j = await biliPostForm('https://api.bilibili.com/x/v3/fav/folder/del', { media_ids: fid, csrf });
+    if (!j || j.code !== 0) throw new Error((j && j.message) || '删除收藏夹失败');
+  },
+
+  async editPlaylist(id, op, ids) {
+    const csrf = getCsrf();
+    if (!csrf) throw new Error('请先登录 B 站账号');
+    const fid = String(id || '').replace(/^fav:/, '');
+    const list = Array.isArray(ids) ? ids : [ids];
+    for (let i = 0; i < list.length; i++) {
+      const aid = await resolveAid(list[i]);
+      const form = { rid: String(aid), type: '2', csrf };
+      if (op === 'del') form.del_media_ids = fid;
+      else form.add_media_ids = fid;
+      const j = await biliPostForm('https://api.bilibili.com/x/v3/fav/resource/deal', form);
+      if (!j || j.code !== 0) throw new Error((j && j.message) || '修改收藏夹失败');
+    }
   },
 
   async toplists() {
