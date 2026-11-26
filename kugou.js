@@ -1,11 +1,11 @@
 // @id kugou
 // @name 酷狗音乐（概念版）
 // @type source
-// @version 2.1.0
+// @version 2.2.0
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、v6/v5 概念版高品与无损取流、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、个人主页/听歌排行/关注歌手、扫码/Cookie 登录与曲库一键签到领每日 VIP
+// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、概念版三段式 Auth 授权取流（完整支持概念版 VIP 与无损）、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、个人主页/听歌排行/关注歌手、扫码/Cookie 登录与曲库一键签到领每日 VIP
 // @api 2
 // @search track,album,artist,playlist
 //
@@ -124,10 +124,12 @@ async function req(path, params, o) {
     'kg-rf': 'B9EDA08A64250DEFFBCADDEE00F8F25F',
   }, o.headers || {});
   if (o.router) headers['x-router'] = o.router;
-  const method = o.method || (hasBody ? 'POST' : 'GET');
+  const method = String(o.method || (hasBody ? 'POST' : 'GET')).toUpperCase();
   const httpOpt = { url, method, headers };
-  if (hasBody) {
-    if (!headers['Content-Type'] && !headers['content-type']) headers['Content-Type'] = 'application/json';
+  if (hasBody || method === 'POST') {
+    if (!headers['Content-Type'] && !headers['content-type']) {
+      headers['Content-Type'] = hasBody ? 'application/json' : 'application/x-www-form-urlencoded';
+    }
     httpOpt.body = body;
   }
   const r = await nk.http(httpOpt);
@@ -292,6 +294,60 @@ function pickPrivStream(j, maxIdx) {
   return null;
 }
 
+let userAuthCache = null;
+
+/** 概念版用户播放授权（/v1/user_verify -> auth），用于 /v1/authorization + /tracker/v5/url */
+async function getUserAuth(force) {
+  const c = cred();
+  if (!c || !c.token || !c.userid) return '';
+  if (!force && userAuthCache && userAuthCache.uid === String(c.userid) && userAuthCache.auth && Date.now() - userAuthCache.ts < 600_000) {
+    return userAuthCache.auth;
+  }
+  try {
+    const j = await req('/v1/user_verify', { module_id: 51 }, {
+      base: 'http://gateway.kugou.com',
+      router: 'trackercdngz.kugou.com',
+      raw: true,
+    });
+    const auth = j && j.status === 1 && j.data && j.data.auth ? String(j.data.auth) : '';
+    if (auth) {
+      userAuthCache = { uid: String(c.userid), auth, ts: Date.now() };
+      return auth;
+    }
+  } catch (e) {}
+  return '';
+}
+
+/** 概念版单曲授权（/v1/authorization -> { auth, open_time }） */
+async function getSongAuth(hash, audioId, dfid) {
+  let uAuth = await getUserAuth(false);
+  if (!uAuth) return null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const j = await req('/v1/authorization', {
+        authorization: uAuth,
+        module_id: 51,
+        album_audio_id: Number(audioId) || 0,
+        clientver: 11561,
+        hash,
+      }, {
+        base: 'http://gateway.kugou.com',
+        router: 'trackercdngz.kugou.com',
+        dfid,
+        raw: true,
+      });
+      if (j && j.status === 1 && j.data && j.data.auth) {
+        return { auth: String(j.data.auth), open_time: j.data.open_time || 0 };
+      }
+    } catch (e) {}
+    if (attempt === 0) {
+      uAuth = await getUserAuth(true);
+      if (!uAuth) break;
+    }
+  }
+  return null;
+}
+
 nk.register({
   async search(q, type, page) {
     page = page || 1;
@@ -338,8 +394,63 @@ nk.register({
     const dfid = (c && c.dfid) || randomStr(24);
     let err = '没有可用的播放地址（无版权或需要酷狗概念版 VIP）';
 
-    // 1) 已登录优先走概念版 /v6/priv_url（一次返回多音质）
+    // 1) 已登录优先走概念版三段式 Auth 授权取流（user_verify -> authorization -> /tracker/v5/url）
     if (token && uid) {
+      const sa = await getSongAuth(hash, audioId, dfid);
+      if (sa && sa.auth) {
+        let last = '';
+        for (let i = maxIdx; i >= 0; i--) {
+          const [q, level] = QUALITIES[i];
+          if (q === last) continue;
+          last = q;
+          try {
+            const j = await req('/tracker/v5/url', {
+              album_id: Number(albumId) || 0,
+              area_code: 1,
+              module: '',
+              hash,
+              need_m: 0,
+              ssa_flag: 'is_fromtrack',
+              version: 11430,
+              open_time: sa.open_time || 0,
+              ptype: 0,
+              need_ogg: 1,
+              page_id: 967177915,
+              auth: sa.auth,
+              mtype: 0,
+              quality: q,
+              album_audio_id: Number(audioId) || 0,
+              behavior: 'play',
+              pid: 411,
+              module_id: 51,
+              cmd: 26,
+              ppage_id: '356753938,823673182,967485191',
+              clientver: 11561,
+              pidversion: 3001,
+              cdnBackup: 1,
+            }, { withKey: true, dfid, raw: true });
+            const u = (j.url && j.url[0]) || (j.backupUrl && j.backupUrl[0]);
+            if (u) {
+              const br = j.bitRate || 0;
+              const res = {
+                url: u.replace(/^http:/, 'https:'),
+                ext: j.extName || (q === 'flac' || q === 'high' ? 'flac' : 'mp3'),
+                kbps: br > 10000 ? Math.round(br / 1000) : br,
+                level,
+              };
+              if (j.priv_status === 1) {
+                res.trial = true;
+                res.message = '当前为试听片段，请确认酷狗概念版 VIP 有效或点击曲库「签到」领免费 VIP';
+              }
+              return res;
+            }
+            const code = j.error_code || j.errcode;
+            if (code === 20028) err = '酷狗触发安全验证，请稍后再试';
+          } catch (e) { err = e.message || err; }
+        }
+      }
+
+      // 2) 回退概念版 /v6/priv_url（一次返回多音质）
       try {
         const j6 = await req('/v6/priv_url', {}, {
           base: 'http://gateway.kugou.com',
@@ -383,7 +494,7 @@ nk.register({
       } catch (e) { err = e.message || err; }
     }
 
-    // 2) 概念版 /v5/url（pid=411, page_id=967177915）逐级降档取流
+    // 3) 回退概念版 /v5/url（pid=411, page_id=967177915）逐级降档取流
     const tryV5 = async (freePart) => {
       let last = '';
       for (let i = freePart ? 0 : maxIdx; i >= 0; i--) {
@@ -427,7 +538,11 @@ nk.register({
           }
           const code = j.error_code || j.errcode;
           if (code === 20028) err = '酷狗触发安全验证，请先扫码登录概念版账号或稍后再试';
-          else if (j.status === 2 || j.status === 3) err = '这首歌需要酷狗概念版 VIP（可在曲库点「签到」领每日免费 VIP）';
+          else if (j.status === 2 || j.status === 3) {
+            err = (token && c && c.appid !== APPID)
+              ? '当前登录态来自旧版标准端，请退出酷狗后重新扫码登录概念版'
+              : '这首歌需要酷狗概念版 VIP（可在曲库点「签到」领每日免费 VIP）';
+          }
         } catch (e) { err = e.message || err; }
       }
       return null;
@@ -802,6 +917,7 @@ nk.register({
     const userid = Number(parsed.userid || parsed.uid || 0);
     if (!token || !userid) throw new Error('请粘贴包含 token=...; userid=... 的酷狗 Cookie 或 JSON');
     saveCred({
+      appid: APPID,
       userid,
       token,
       nick: parsed.nickname || parsed.nick || String(userid),
@@ -810,10 +926,11 @@ nk.register({
       vip_type: Number(parsed.vip_type || 0),
       vip_token: parsed.vip_token || '',
     });
+    userAuthCache = null;
     await syncVipInfo(true);
   },
 
-  async logout() { saveCred(null); },
+  async logout() { userAuthCache = null; saveCred(null); },
 
   async loginQr() {
     const j = await req('/v2/qrcode', {
@@ -840,7 +957,8 @@ nk.register({
       case 0: return { state: 'expired' };
       case 2: return { state: 'scanned' };
       case 4:
-        saveCred({ userid: d.userid, token: d.token, nick: d.nickname, avatar: pic(d.pic) });
+        saveCred({ appid: APPID, userid: d.userid, token: d.token, nick: d.nickname, avatar: pic(d.pic) });
+        userAuthCache = null;
         await syncVipInfo(true);
         return { state: 'done' };
       default: return { state: 'wait' };
