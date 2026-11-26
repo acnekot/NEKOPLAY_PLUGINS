@@ -83,6 +83,15 @@
       "url": "scrub.js"
     },
     {
+      "id": "soundcloud",
+      "name": "SoundCloud",
+      "type": "source",
+      "version": "1.0.0",
+      "author": "NEKOPLAY",
+      "desc": "SoundCloud 独立音源：自动提取 client_id、单曲/专辑/歌单/艺人/用户搜索与联想词、HLS/直链音频播放、官方流派趋势榜单与精选歌单、每日推荐/私人 FM/新歌/相似曲目、歌手主页与专辑、曲目评论区；支持粘贴 oauth_token Cookie 同步个人喜欢与歌单",
+      "url": "soundcloud.js"
+    },
+    {
       "id": "vibe_board",
       "name": "听歌氛围看板 (v2 Demo)",
       "type": "page",
