@@ -1,9 +1,9 @@
 // @id bilibili
 // @name 哔哩哔哩
 // @type source
-// @version 1.2.0
+// @version 1.3.0
 // @author NEKOPLAY
-// @desc 哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复），扫码登录后同步收藏夹与稍后再看
+// @desc 哔哩哔哩音源（参考 BBPlayer）：WBI 签名、视频/UP主搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、多页加载全部投稿与收藏夹、音乐区排行榜、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复）与用户主页，扫码登录后同步收藏夹与稍后再看
 // @api 1
 // @search track,artist
 //
@@ -727,11 +727,69 @@ nk.register({
     try {
       const j = await biliGet('https://api.bilibili.com/x/web-interface/nav', null, false);
       if (j && j.code === 0 && j.data && j.data.isLogin) {
-        nk.store.set('uid', String(j.data.mid));
-        return { name: cleanText(j.data.uname), avatar: pic(j.data.face) };
+        const uid = String(j.data.mid);
+        nk.store.set('uid', uid);
+        return { uid, name: cleanText(j.data.uname), avatar: pic(j.data.face) };
       }
     } catch (e) {}
     return null;
+  },
+
+  async user(id) {
+    let mid = String(id || '').trim();
+    if (!mid || !/^\d+$/.test(mid)) mid = String(nk.store.get('uid') || '');
+    if (!mid) throw new Error('未找到有效的 B 站用户 ID');
+    const j = await biliGet('https://api.bilibili.com/x/web-interface/card', { mid, photo: 'true' }, false);
+    if (j && j.code === 0 && j.data && j.data.card) {
+      const d = j.data;
+      const card = d.card;
+      const sp = d.space || {};
+      return {
+        uid: String(card.mid || mid),
+        name: cleanText(card.name || ('UP主 ' + mid)),
+        avatar: pic(card.face),
+        bg: pic(sp.l_img || sp.s_img),
+        signature: cleanText(card.sign || ''),
+        level: Number((card.level_info && card.level_info.current_level) || 0),
+        listened: Number(d.archive_count || 0),
+        follows: Number(card.attention || 0),
+        fans: Number(card.fans || d.follower || 0),
+        followed: !!d.following,
+      };
+    }
+    const infoRes = await biliGet('https://api.bilibili.com/x/space/wbi/acc/info', { mid }, true).catch(() => null);
+    const info = infoRes && infoRes.code === 0 && infoRes.data;
+    if (info) {
+      return {
+        uid: String(info.mid || mid),
+        name: cleanText(info.name || ('UP主 ' + mid)),
+        avatar: pic(info.face),
+        bg: pic(info.top_photo),
+        signature: cleanText(info.sign || ''),
+        level: Number(info.level || 0),
+        listened: 0,
+        follows: 0,
+        fans: 0,
+        followed: !!info.is_followed,
+      };
+    }
+    throw new Error((j && j.message) || '获取 B 站用户信息失败');
+  },
+
+  async userPlaylists(id) {
+    const myUid = String(nk.store.get('uid') || '');
+    const mid = String(id || myUid).trim();
+    if (!mid || !/^\d+$/.test(mid)) return myUid ? await this.myPlaylists() : [];
+    if (myUid && mid === myUid) return await this.myPlaylists();
+    const created = await biliGet('https://api.bilibili.com/x/v3/fav/folder/created/list-all', { up_mid: mid }, false).catch(() => null);
+    if (!created || created.code !== 0 || !created.data || !created.data.list) return [];
+    return created.data.list.map((f, idx) => ({
+      id: 'fav:' + f.id,
+      name: cleanText(f.title),
+      count: f.media_count || 0,
+      liked: idx === 0,
+      mine: true,
+    }));
   },
 
   async myPlaylists() {

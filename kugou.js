@@ -1,11 +1,11 @@
 // @id kugou
 // @name 酷狗音乐（概念版）
 // @type source
-// @version 2.0.0
+// @version 2.1.0
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、v6/v5 概念版高品与无损取流、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、扫码/Cookie 登录与曲库一键签到领每日 VIP
+// @desc 酷狗概念版音源（MIT 上游 MakcRe/KuGouMusicApi）：单曲/专辑/歌手/歌单搜索、热搜与联想、v6/v5 概念版高品与无损取流、每日推荐、私人 FM、新碟上架、推荐歌单、排行榜、个人主页/听歌排行/关注歌手、扫码/Cookie 登录与曲库一键签到领每日 VIP
 // @api 2
 // @search track,album,artist,playlist
 //
@@ -61,6 +61,37 @@ function signKey(hash, m, uid, appid) {
 }
 const enc = (s) => encodeURIComponent(s).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
 const randomStr = (n) => Array.from({ length: n }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
+
+// 概念版 1024-bit RSA 公钥模数（与 MakcRe/KuGouMusicApi publicLiteRasKey 一致）
+const RSA_LITE_N = BigInt('0xc40a2d0da76511f3bb1cc2bbd3afbd8bea83b4d6b05b6c13eb8920c53f1af7679b32ba0d0edb843240ef1b836efed3ee240734c14c1399fd6594d16af22f52525d14d72e0155c6dcc8638d4f7bb94f3a0b1f4c29f991972f2a160a25eb0a9e724336be7f69bbd319ffab1c6dd8470b021dc434f3faba89f4a2a01b33bdbdd08b');
+const RSA_LITE_E = 65537n;
+
+function modPow(base, exp, mod) {
+  let res = 1n;
+  let b = base % mod;
+  let e = exp;
+  while (e > 0n) {
+    if (e & 1n) res = (res * b) % mod;
+    e >>= 1n;
+    b = (b * b) % mod;
+  }
+  return res;
+}
+
+/** 概念版零填充原始 RSA 加密（与 MakcRe/KuGouMusicApi cryptoRSAEncrypt 一致），输出大写 hex */
+function rsaLiteEncrypt(data) {
+  const s = typeof data === 'string' ? data : JSON.stringify(data);
+  const bytes = [];
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code < 0x80) bytes.push(code);
+    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    else bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+  }
+  while (bytes.length < 128) bytes.push(0);
+  const hex = bytes.slice(0, 128).map(b => b.toString(16).padStart(2, '0')).join('');
+  return modPow(BigInt('0x' + hex), RSA_LITE_E, RSA_LITE_N).toString(16).padStart(256, '0').toUpperCase();
+}
 
 /**
  * 概念版网关请求封装：默认注入 dfid / mid / uuid / appid(3116) / clientver(11440) / clienttime + 登录态 token/userid + 签名。
@@ -608,12 +639,97 @@ nk.register({
     };
   },
 
-  // ---------- 账号与概念版每日领 VIP ----------
+  // ---------- 账号、用户主页与概念版每日领 VIP ----------
   async account() {
     const c = cred();
     if (!c || !c.token) return null;
     await syncVipInfo(false);
     return { uid: String(c.userid), name: c.nick || String(c.userid), avatar: c.avatar || null };
+  },
+
+  async user(id) {
+    const c = cred();
+    const uid = String(id || (c && c.userid) || '');
+    if (!uid) throw new Error('请先登录酷狗概念版账号');
+    const isMe = !!(c && c.token && String(c.userid) === uid);
+    let d = {};
+    if (isMe) {
+      try {
+        const t = Math.floor(Date.now() / 1000);
+        const pk = rsaLiteEncrypt({ token: c.token, clienttime: t });
+        const j = await req('/v3/get_my_info', { plat: 1 }, {
+          router: 'usercenter.kugou.com',
+          body: { visit_time: t, usertype: 1, p: pk, userid: Number(c.userid) },
+          raw: true,
+        });
+        if (j && j.status === 1 && j.data) d = j.data;
+      } catch (e) {}
+    }
+    const vipTag = c && c.vip_type ? '酷狗概念版 VIP' : '酷狗概念版用户';
+    return {
+      uid,
+      name: d.nickname || (isMe && c.nick) || uid,
+      avatar: pic(d.pic) || (isMe && c.avatar) || null,
+      bg: pic(d.bg_pic || d.background) || null,
+      signature: d.descri || d.signature || vipTag,
+      level: Number(d.p_grade || d.grade || d.level || 0),
+      listened: Number(d.listen_songs || d.total_listen || 0),
+      follows: Number(d.follows || d.follow_num || 0),
+      fans: Number(d.fans || d.fans_num || 0),
+      followed: false,
+    };
+  },
+
+  async userPlaylists(id) {
+    const c = cred();
+    if (c && c.token && (!id || String(id) === String(c.userid))) {
+      return await this.myPlaylists();
+    }
+    return [];
+  },
+
+  async playRecord(id, week) {
+    const c = cred();
+    if (!c || !c.token || !c.userid) return [];
+    const uid = Number(id || c.userid);
+    const t = Math.floor(Date.now() / 1000);
+    const p = rsaLiteEncrypt({ clienttime: t, token: c.token });
+    const j = await req('/v2/get_list', { clienttime: t, plat: 0 }, {
+      base: 'https://listenservice.kugou.com',
+      body: { t_userid: uid, userid: Number(c.userid), list_type: week ? 1 : 0, area_code: 1, cover: 2, p },
+      raw: true,
+    });
+    const list = (j && j.data && (j.data.lists || j.data.list || j.data.info)) || [];
+    return list.map(x => ({
+      track: listSong(x),
+      count: Number(x.pc || x.play_count || x.count || 0),
+    })).filter(x => x.track && x.track.title);
+  },
+
+  async subArtists() {
+    const c = cred();
+    if (!c || !c.token || !c.userid) return [];
+    const t = Math.floor(Date.now() / 1000);
+    const j = await req('/v4/follow_list', { plat: 1 }, {
+      router: 'relationuser.kugou.com',
+      body: {
+        merge: 2,
+        need_iden_type: 1,
+        ext_params: 'k_pic,jumptype,singerid,score',
+        userid: Number(c.userid),
+        type: 0,
+        id_type: 0,
+        p: rsaLiteEncrypt({ clienttime: t, token: c.token }),
+      },
+      raw: true,
+    });
+    const list = (j && j.data && (j.data.lists || j.data.list)) || [];
+    return list.filter(x => x && (x.singerid || x.userid)).map(x => ({
+      id: 'ar' + (x.singerid || x.userid),
+      name: x.nickname || x.author_name || '',
+      cover: pic(x.pic || x.k_pic, 240),
+      followed: true,
+    }));
   },
 
   async myPlaylists() {
