@@ -1,11 +1,11 @@
 // @id geom_motion
 // @name 点线面几何动效
 // @type motion
-// @version 1.0.0
+// @version 1.0.1
 // @minHost 0.6.8
 // @permissions motion.profile, storage
 // @author NEKOPLAY
-// @desc 独立点线面几何动效插件：正方形封面与可选页面容器从左上原点 (0,0) 先拉成顶边光束线，再向下扫面展开（支持切歌/收起反向缩回点与三套 PRTS 风格预设热切换）
+// @desc 独立点线面几何动效插件（内置实机交互演示台）：正方形封面与可选页面容器从左上原点 (0,0) 先拉成顶边光束线，再向下扫面展开（支持切歌/收起反向缩回点与三套 PRTS 风格预设热切换）
 // @api 2
 
 const PRESETS = {
@@ -56,6 +56,15 @@ const PRESETS = {
   },
 };
 
+const DEMO_SLIDES = [
+  { title: 'PRTS // 01', sub: '左上原点 (0,0) → 顶线 → 向下扫面' },
+  { title: 'NEKO // 02', sub: '支持切歌先反向 面→线→点 缩回' },
+  { title: 'GEOM // 03', sub: '纯 GPU 绘制层 120fps 零重组' },
+];
+
+let demoSeq = 1;
+let demoIdx = 0;
+
 function getState() {
   const saved = nk.store.get('cfg') || {};
   const preset = PRESETS[saved.preset] ? saved.preset : 'geom_prts';
@@ -105,6 +114,13 @@ nk.registerMotion({
     const fx = buildProfile().effects;
     const lang = (ctx && ctx.lang) || (nk.host && nk.host.lang) || 'zh-CN';
     const isEn = String(lang).startsWith('en');
+    const curTrack = ctx && ctx.track;
+    const slide = DEMO_SLIDES[demoIdx % DEMO_SLIDES.length];
+    const demoUrl = (demoIdx === 0 && curTrack && curTrack.cover) ? curTrack.cover : '';
+    const demoTitle = (demoIdx === 0 && curTrack && curTrack.title) ? curTrack.title : slide.title;
+    const demoSub = (demoIdx === 0 && curTrack && curTrack.artist) ? curTrack.artist : slide.sub;
+    const revealKey = st.preset + ':' + demoIdx + ':' + demoSeq + ':' + (st.geomReverse ? '1' : '0') + ':' + (st.geomAccent ? '1' : '0');
+
     return {
       type: 'column', gap: 14, children: [
         { type: 'tag', text: 'GEOM MOTION · POINT → LINE → PLANE' },
@@ -113,8 +129,31 @@ nk.registerMotion({
           type: 'text',
           text: isEn
             ? 'Unfolds square covers (and optionally page/player containers) from the top-left origin (0,0) into a sharp top hairline, then sweeps straight downward into a full plane.'
-            : '以正方形封面左上角 (0, 0) 为原点：先极速横向拉成一条锐利顶边光束线，再垂直向下扫开完整封面；支持切歌与收起反向「面 → 线 → 点」缩回左上顶点。',
+            : '以正方形封面左上角 (0, 0) 为原点：先极速横向拉成一条锐利顶边光束线，再垂直向下扫开完整封面；开启本插件后播放页切歌、歌单/专辑头图均自动生效。',
           size: 12, tone: 'sub',
+        },
+        {
+          type: 'card', gap: 12, children: [
+            { type: 'tag', text: isEn ? 'LIVE ON-DEVICE DEMO' : '实机交互演示台（120fps 原生 GPU 渲染）' },
+            {
+              type: 'row', gap: 14, children: [
+                { type: 'cover', url: demoUrl, size: 156, title: demoTitle, revealKey: revealKey, geomPreview: true },
+                {
+                  type: 'column', grow: true, gap: 8, children: [
+                    { type: 'text', text: demoTitle, size: 16, weight: 800, lines: 2 },
+                    { type: 'text', text: demoSub, size: 12, tone: 'sub', lines: 2 },
+                    { type: 'text', text: 'STAGE: ● 点 → ━ 线 (' + Math.round(fx.geomLineRatio * 100) + '%) → ■ 面', size: 11, tone: 'primary', mono: true },
+                    {
+                      type: 'row', gap: 8, children: [
+                        { type: 'button', text: isEn ? 'Replay' : '重播点→线→面', primary: true, action: 'demo_replay' },
+                        { type: 'button', text: isEn ? 'Next Cover' : '切封面测试', action: 'demo_next' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         },
         {
           type: 'card', gap: 10, children: [
@@ -154,18 +193,30 @@ nk.registerMotion({
   },
   onAction(action, payload) {
     const st = getState();
+    if (action === 'demo_replay') {
+      demoSeq++;
+      return { refresh: true };
+    }
+    if (action === 'demo_next') {
+      demoIdx = (demoIdx + 1) % DEMO_SLIDES.length;
+      demoSeq++;
+      return { refresh: true };
+    }
     if (action === 'preset' && payload && PRESETS[payload.key]) {
       st.preset = payload.key;
       saveState(st);
+      demoSeq++;
       return { toast: '已切换点线面预设：' + PRESETS[payload.key].label, refresh: true };
     }
     if (action === 'toggle' && payload && ['geomReverse', 'geomContainer', 'geomAccent'].includes(payload.field)) {
       st[payload.field] = !st[payload.field];
       saveState(st);
+      demoSeq++;
       return { toast: '已更新点线面几何配置', refresh: true };
     }
     if (action === 'reset') {
       saveState({ preset: 'geom_prts', geomReverse: true, geomContainer: false, geomAccent: true });
+      demoSeq++;
       return { toast: '已恢复点线面几何动效默认配置', refresh: true };
     }
     return { refresh: true };
