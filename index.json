@@ -41,9 +41,9 @@
       "id": "osu_motion",
       "name": "osu!stable 动效引擎",
       "type": "motion",
-      "version": "2.2.0",
+      "version": "2.3.0",
       "author": "NEKOPLAY",
-      "desc": "还原经典 osu!stable 选歌架逐项瀑布入场、设置侧栏留尾滑出与大行程悬停弹出位移，支持插件内热切换预设与留尾倍率",
+      "desc": "独立动效引擎插件：还原经典 osu!stable 选歌架逐项瀑布入场、设置侧栏留尾滑出与悬停弹出位移，支持插件内热切换预设、留尾倍率与瀑布入场强度",
       "url": "osu_motion.js"
     },
     {
