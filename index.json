@@ -38,6 +38,15 @@
       "url": "netease.js"
     },
     {
+      "id": "origin_motion",
+      "name": "源点空间动效",
+      "type": "motion",
+      "version": "1.0.0",
+      "author": "NEKOPLAY",
+      "desc": "独立源点空间动效插件：点哪个就从哪展开、返回原路缩回原入口（从哪来回哪去），支持列表点击邻近物理波纹联动与多级动量方向继承",
+      "url": "origin_motion.js"
+    },
+    {
       "id": "osu_motion",
       "name": "osu!stable 动效引擎",
       "type": "motion",
