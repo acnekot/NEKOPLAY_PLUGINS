@@ -1,7 +1,7 @@
 // @id soundcloud
 // @name SoundCloud
 // @type source
-// @version 1.1.0
+// @version 1.1.1
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
@@ -849,7 +849,7 @@ nk.register({
       cookieUrl: 'https://soundcloud.com',
       cookieMatch: '(?:^|;\\s*)oauth_token=[^;\\s]+',
       clearCookie: 'oauth_token',
-      hint: '在下方网页直接登录 SoundCloud（推荐使用邮箱密码登录），成功后自动捕获凭证完成绑定；若需手动粘贴可切换上方「Cookie 粘贴」',
+      hint: '在下方网页直接登录 SoundCloud（支持邮箱密码及 Google/Apple 第三方登录弹窗），成功后自动捕获凭证完成绑定；也可切到上方「Cookie 粘贴」',
     };
   },
 
