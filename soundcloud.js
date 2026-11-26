@@ -1,11 +1,11 @@
 // @id soundcloud
 // @name SoundCloud
 // @type source
-// @version 1.0.0
+// @version 1.1.0
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc SoundCloud 独立音源：自动提取 client_id、单曲/专辑/歌单/艺人/用户搜索与联想词、HLS/直链音频播放、官方流派趋势榜单与精选歌单、每日推荐/私人 FM/新歌/相似曲目、歌手主页与专辑、曲目评论区；支持粘贴 oauth_token Cookie 同步个人喜欢与歌单
+// @desc SoundCloud 独立音源：自动提取 client_id、单曲/专辑/歌单/艺人/用户搜索与联想词、HLS/直链音频播放、官方流派趋势榜单与精选歌单、每日推荐/私人 FM/新歌/相似曲目、歌手主页与专辑、曲目评论区；支持内嵌网页直接登录自动捕获凭证或粘贴 Cookie 同步个人喜欢与歌单
 // @api 2
 // @search track,album,playlist,artist,user
 
@@ -835,6 +835,28 @@ nk.register({
 
   async followUser(id, on) {
     return await this.followArtist(id, on);
+  },
+
+  loginModes() {
+    return [{ id: 'web', name: '网页直接登录', web: true }];
+  },
+
+  loginWeb(env) {
+    const pc = !!(env && env.desktop);
+    return {
+      url: 'https://soundcloud.com/signin',
+      pc,
+      cookieUrl: 'https://soundcloud.com',
+      cookieMatch: '(?:^|;\\s*)oauth_token=[^;\\s]+',
+      clearCookie: 'oauth_token',
+      hint: '在下方网页直接登录 SoundCloud（推荐使用邮箱密码登录），成功后自动捕获凭证完成绑定；若需手动粘贴可切换上方「Cookie 粘贴」',
+    };
+  },
+
+  async loginWebDone(url, cookie) {
+    const raw = String(cookie || '') || String(url || '');
+    await this.setCookie(raw);
+    return { state: 'done' };
   },
 
   async setCookie(raw) {
