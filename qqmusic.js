@@ -1,7 +1,7 @@
 // @id qqmusic
 // @name QQ 音乐
 // @type source
-// @version 1.8.0
+// @version 1.9.0
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
@@ -538,6 +538,10 @@ function qrcToYrc(xml) {
 }
 
 nk.register({
+  // 宿主媒体规则：封面缩略图尺寸参数（宿主 0.6.9+ 读取）
+  media: [
+    { hosts: ['gtimg.cn'], image: { from: 'R500x500', to: 'R{s}x{s}', sizes: [150, 300, 500, 800] } },
+  ],
   // ---------- 搜索 ----------
   async search(q, type, page) {
     if (type === 'artist') {

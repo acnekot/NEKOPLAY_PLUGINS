@@ -1,7 +1,7 @@
 // @id kugou
 // @name 酷狗音乐（概念版）
 // @type source
-// @version 2.4.0
+// @version 2.5.0
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
@@ -481,6 +481,10 @@ function kgAesHex(obj) {
 }
 
 nk.register({
+  // 宿主媒体规则：封面缩略图尺寸参数（宿主 0.6.9+ 读取）
+  media: [
+    { hosts: ['kugou.com'], image: { from: '/480/', to: '/{s}/', sizes: [150, 240, 480] } },
+  ],
   async search(q, type, page) {
     page = page || 1;
     if (type === 'playlist') {

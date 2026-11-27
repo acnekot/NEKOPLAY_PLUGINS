@@ -1,7 +1,7 @@
 // @id bilibili
 // @name 哔哩哔哩
 // @type source
-// @version 1.4.0
+// @version 1.5.0
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
@@ -280,6 +280,11 @@ function fmtLrcTime(sec) {
 
 // ---------- 注册 NEKOPLAY 插件 ----------
 nk.register({
+  // 宿主媒体规则：封面 / 音频 CDN 需要的请求头（宿主 0.6.9+ 读取）
+  media: [
+    { hosts: ['bilibili.com', 'hdslb.com', 'bilivideo.com', 'bilivideo.cn', 'akamaized.net'],
+      headers: { Referer: 'https://www.bilibili.com/', Origin: 'https://www.bilibili.com', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' } },
+  ],
   async search(q, type, page) {
     page = page || 1;
     if (type === 'artist' || type === 'user') {

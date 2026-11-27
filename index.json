@@ -5,7 +5,7 @@
       "id": "bilibili",
       "name": "哔哩哔哩",
       "type": "source",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "author": "NEKOPLAY",
       "desc": "哔哩哔哩完整音源（参考 BBPlayer）：WBI 签名、视频/UP主/用户搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、每日推荐/随机电台/相似推荐/新歌榜单、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复）、用户主页、点赞/关注/收藏夹管理，扫码登录后同步收藏夹与稍后再看",
       "url": "bilibili.js"
@@ -32,7 +32,7 @@
       "id": "kugou",
       "name": "酷狗音乐（概念版）",
       "type": "source",
-      "version": "2.4.0",
+      "version": "2.5.0",
       "author": "NEKOPLAY",
       "desc": "酷狗概念版完整音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册 dfid 防风控、三段式 Auth VIP 取流、搜索（单曲/专辑/歌手/歌单）、热搜联想、歌单广场、排行榜、新碟/新歌、每日推荐、私人 FM、评论区与楼中楼、相似歌曲、歌手专辑与 MV、云盘、歌单管理/喜欢/关注、个人主页/听歌排行与曲库一键签到领 VIP",
       "url": "kugou.js"
@@ -41,7 +41,7 @@
       "id": "netease",
       "name": "网易云音乐",
       "type": "source",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": "NEKOPLAY",
       "desc": "网易云完整音源：搜索、播放、逐字歌词、日推、私人 FM、歌单广场、排行榜、评论与楼中楼、MV、电台、云盘、个人主页与听歌排行，扫码登录后同步歌单和喜欢",
       "url": "netease.js"
@@ -68,7 +68,7 @@
       "id": "qqmusic",
       "name": "QQ 音乐",
       "type": "source",
-      "version": "1.8.0",
+      "version": "1.9.0",
       "author": "NEKOPLAY",
       "desc": "QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论/楼中楼/点赞/发表、相似推荐、个人主页、听歌排行与播放上报",
       "url": "qqmusic.js"

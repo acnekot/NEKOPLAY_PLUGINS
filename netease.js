@@ -1,7 +1,7 @@
 // @id netease
 // @name 网易云音乐
 // @type source
-// @version 1.1.0
+// @version 1.2.0
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
@@ -96,6 +96,12 @@ function saveCookie(text) {
 const weblog = (action, json) => api('/weapi/feedback/weblog', { logs: JSON.stringify([{ action, json }]) });
 
 nk.register({
+  // 宿主媒体规则：封面 / 音频 / MV CDN 需要的请求头与封面缩略图尺寸参数（宿主 0.6.9+ 读取）
+  media: [
+    { hosts: ['126.net', '163.com'], headers: { Referer: 'https://music.163.com/', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
+      image: { contains: '/obj/', query: 'imageView=1&thumbnail={s}x{s}&type=webp', sizes: [160, 256, 512, 768], keepHttp: true } },
+    { hosts: ['music.126.net'], image: { query: 'param={s}y{s}', sizes: [160, 256, 512, 768], keepHttp: true } },
+  ],
   // ---------- 搜索 ----------
   async search(q, type, page) {
     switch (type) {
