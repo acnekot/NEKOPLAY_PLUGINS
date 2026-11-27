@@ -1,7 +1,7 @@
 // @id soundcloud
 // @name SoundCloud
 // @type source
-// @version 1.1.1
+// @version 1.1.2
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
@@ -379,9 +379,9 @@ function parseToken(raw) {
   const s = String(raw || '').trim();
   if (!s) return '';
   const m = s.match(/(?:^|;\s*)oauth_token=([^;\s]+)/i);
-  if (m && m[1]) return decodeURIComponent(m[1].trim());
+  if (m && m[1]) return decodeURIComponent(m[1].trim()).replace(/^"+|"+$/g, '');
   const m2 = s.match(/^OAuth\s+(\S+)/i);
-  if (m2 && m2[1]) return m2[1].trim();
+  if (m2 && m2[1]) return m2[1].trim().replace(/^"+|"+$/g, '');
   if (/^[0-9]+-[0-9]+-[A-Za-z0-9_\-]+$/.test(s)) return s;
   return '';
 }
@@ -844,9 +844,9 @@ nk.register({
   loginWeb(env) {
     const pc = !!(env && env.desktop);
     return {
-      url: 'https://soundcloud.com/signin',
+      url: pc ? 'https://soundcloud.com/signin' : 'https://m.soundcloud.com/signin',
       pc,
-      cookieUrl: 'https://soundcloud.com',
+      cookieUrl: pc ? 'https://soundcloud.com' : 'https://m.soundcloud.com',
       cookieMatch: '(?:^|;\\s*)oauth_token=[^;\\s]+',
       clearCookie: 'oauth_token',
       hint: '在下方网页直接登录 SoundCloud（支持邮箱密码及 Google/Apple 第三方登录弹窗），成功后自动捕获凭证完成绑定；也可切到上方「Cookie 粘贴」',
