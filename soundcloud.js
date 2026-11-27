@@ -1,7 +1,7 @@
 // @id soundcloud
 // @name SoundCloud
 // @type source
-// @version 1.1.2
+// @version 1.1.3
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
@@ -577,9 +577,20 @@ nk.register({
 
     if (s === 'liked') {
       const uid = nk.store.get('sc_uid');
-      if (!uid) throw new Error('请先通过 Cookie 登录 SoundCloud');
-      const j = await scGet('/users/' + encodeURIComponent(uid) + '/track_likes', { limit: 100 });
-      return ((j && j.collection) || []).map(x => mapTrack(x && (x.track || x))).filter(Boolean);
+      if (!uid) throw new Error('请先登录 SoundCloud');
+      const out = [];
+      let nextUrl = '/users/' + encodeURIComponent(uid) + '/track_likes';
+      let params = { limit: 100 };
+      for (let page = 0; page < 3 && nextUrl; page++) {
+        const j = await scGet(nextUrl, params);
+        ((j && j.collection) || []).forEach(x => {
+          const m = mapTrack(x && (x.track || x));
+          if (m) out.push(m);
+        });
+        nextUrl = (j && j.next_href) || '';
+        params = {};
+      }
+      return out;
     }
 
     if (s.startsWith('ulikes:')) {
@@ -588,8 +599,11 @@ nk.register({
       return ((j && j.collection) || []).map(x => mapTrack(x && (x.track || x))).filter(Boolean);
     }
 
-    const j = await scGet('/playlists/' + encodeURIComponent(s));
-    return await hydrateTracks((j && j.tracks) || [], clean((j && j.title) || 'SoundCloud'), s);
+    const parts = s.split('|');
+    const pid = parts[0];
+    const secret = parts[1] || '';
+    const j = await scGet('/playlists/' + encodeURIComponent(pid), secret ? { secret_token: secret } : {});
+    return await hydrateTracks((j && j.tracks) || [], clean((j && j.title) || 'SoundCloud'), pid);
   },
 
   async album(id) {
@@ -807,14 +821,47 @@ nk.register({
         desc: 'SoundCloud 喜欢列表',
       },
     ];
-    const j = await scGet('/users/' + encodeURIComponent(uid) + '/playlists_without_albums', { limit: 50 }).catch(() => null);
-    ((j && j.collection) || []).forEach(p => {
-      const m = mapPlaylist(p);
-      if (m) {
-        m.mine = String((p.user && p.user.id) || '') === String(uid);
-        out.push(m);
+    const seen = {};
+    const pushPl = (p) => {
+      if (!p) return;
+      if (p.kind === 'system-playlist' && (p.urn || p.id)) {
+        const urn = String(p.urn || p.id);
+        const id = 'sys:' + urn;
+        if (seen[id]) return;
+        seen[id] = 1;
+        out.push({
+          id,
+          name: clean(p.title || 'SoundCloud Playlist'),
+          count: Number(p.track_count || (p.tracks && p.tracks.length) || 0),
+          cover: art(p.artwork_url || p.calculated_artwork_url),
+          desc: clean(p.description || ''),
+          mine: false,
+        });
+        return;
       }
+      const m = mapPlaylist(p);
+      if (!m) return;
+      if (p.secret_token) m.id = `${p.id}|${p.secret_token}`;
+      const dedupKey = String(p.id);
+      if (seen[dedupKey]) return;
+      seen[dedupKey] = 1;
+      m.mine = String((p.user && p.user.id) || '') === String(uid);
+      out.push(m);
+    };
+
+    const [libRes, createdRes, albumRes] = await Promise.all([
+      scGet('/me/library/all', { limit: 100 }).catch(() => null),
+      scGet('/users/' + encodeURIComponent(uid) + '/playlists_without_albums', { limit: 50 }).catch(() => null),
+      scGet('/users/' + encodeURIComponent(uid) + '/albums', { limit: 50 }).catch(() => null),
+    ]);
+    ((libRes && libRes.collection) || []).forEach(it => {
+      if (!it) return;
+      if (it.playlist) pushPl(it.playlist);
+      else if (it.system_playlist) pushPl(it.system_playlist);
+      else if (it.kind === 'playlist' || it.kind === 'system-playlist') pushPl(it);
     });
+    ((createdRes && createdRes.collection) || []).forEach(pushPl);
+    ((albumRes && albumRes.collection) || []).forEach(pushPl);
     return out;
   },
 
