@@ -1,7 +1,7 @@
 // @id qqmusic
 // @name QQ 音乐
 // @type source
-// @version 1.9.0
+// @version 1.9.1
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
@@ -1067,7 +1067,7 @@ nk.register({
   },
   async logout() { nk.store.set('cred', null); },
 
-  /** 登录方式：网页登录（内嵌 QQ 互联页，手机上能一键拉起手机 QQ）、QQ 扫码、微信扫码 */
+  /** 登录方式：网页登录（内嵌 QQ 互联页，手机和电脑同一套）、QQ 扫码、微信扫码 */
   loginModes() { return [{ id: 'web', name: 'QQ 登录', web: true }, { id: 'qq', name: 'QQ 扫码' }, { id: 'wx', name: '微信扫码' }]; },
 
   /** 扫码登录第一步：返回二维码图片（base64）和查询用的 key */
@@ -1118,39 +1118,16 @@ nk.register({
   },
 
   // ---------- 网页登录 ----------
-  /** done：网页跳到这里就算登录完成；open：这些地址交给系统打开（拉起手机 QQ） */
-  loginWeb(env) {
-    const pc = !!(env && env.desktop);
-    const q = qs({ response_type: 'code', client_id: '100497308', redirect_uri: REDIRECT + '?login_type=1&surl=https://y.qq.com/', state: 'state', display: pc ? 'pc' : 'mobile' });
-    return { url: 'https://graph.qq.com/oauth2.0/' + (pc ? 'show?which=Login&' : 'authorize?') + q, pc,
-      done: '^https://y\\.qq\\.com/portal/wx_redirect\\.html', open: '^wtloginmqq',
-      hint: pc ? '用手机 QQ 扫码，或者电脑上已经登录了 QQ 时直接点头像快捷登录' : '在下面登录 QQ；点「一键登录」会跳到手机 QQ，确认后自动回来' };
+  /** 手机和电脑统一用 QQ 互联电脑版登录页（扫码 / 账号密码 / 快捷登录），不再跳转手机 QQ；done：网页跳到这里就算登录完成 */
+  loginWeb() {
+    const q = qs({ response_type: 'code', client_id: '100497308', redirect_uri: REDIRECT + '?login_type=1&surl=https://y.qq.com/', state: 'state', display: 'pc' });
+    return { url: 'https://graph.qq.com/oauth2.0/show?which=Login&' + q, pc: true,
+      done: '^https://y\\.qq\\.com/portal/wx_redirect\\.html',
+      hint: '用手机 QQ 扫码，或者用账号密码登录；电脑上已经登录了 QQ 时可直接点头像快捷登录' };
   },
   async loginWebDone(url) {
     const m = /[?&]code=([^&#]+)/.exec(url); if (!m) throw new Error('没有拿到登录 code');
     await finish(await call('QQConnectLogin.LoginServer', 'QQLogin', { code: m[1] }, { tmeLoginType: 2 }), 2);
     return { state: 'done' };
-  },
-  /** 拉起手机 QQ 前改写地址：带上本 App 的包名和回跳 scheme */
-  loginWebOpen(u, app) {
-    let r = u;
-    const m = /([?&]p=)([^&]*)/.exec(r);
-    if (m) {
-      let inner = decodeURIComponent(m[2]);
-      const key = app.ios ? 'pt_bundleid' : 'pt_package';
-      if (inner.indexOf(key + '=') < 0) inner += '&' + key + '=' + app.id;
-      r = r.slice(0, m.index + m[1].length) + encodeURIComponent(inner) + r.slice(m.index + m[0].length);
-    }
-    const cb = 'schemacallback=' + encodeURIComponent(app.scheme);
-    return /[?&]schemacallback=/.test(r) ? r.replace(/schemacallback=[^&]*/, cb) : r + '&' + cb;
-  },
-  /** 手机 QQ 跳回来的 nekoplay://… 里取出要继续加载的网页 */
-  loginWebBack(cb) {
-    const r = cb.replace(/^[a-z]+:\/\//, '').replace(/\(null\)/g, '');
-    if (/^https?:\/\//.test(r)) return r;
-    const i = r.indexOf('http'); if (i < 0) return null;
-    let u = r.slice(i);
-    if (/^https?%3A/i.test(u)) u = decodeURIComponent(u);
-    return u;
   },
 });
