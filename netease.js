@@ -5,7 +5,12 @@
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 网易云完整音源：搜索、播放、逐字歌词、日推、私人 FM、歌单广场、排行榜、评论与楼中楼、MV、电台、云盘、个人主页与听歌排行，扫码登录后同步歌单和喜欢
+// @desc 网易云音源：搜索、逐字歌词、日推与私人 FM
+// @details 单曲 / 专辑 / 歌手 / 歌单 / 用户 / 歌词搜索
+// @details 逐字歌词与翻译，每日推荐、私人 FM、歌单广场、排行榜
+// @details 评论与楼中楼、MV、电台、云盘
+// @details 扫码登录后同步歌单、喜欢与个人主页
+// @screenshots screenshots/netease-1.jpg
 // @api 2
 // @search track,album,artist,playlist,user,lyric
 //

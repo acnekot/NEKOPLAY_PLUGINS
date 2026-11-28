@@ -5,7 +5,12 @@
 // @minHost 0.6.8
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc SoundCloud 独立音源：自动提取 client_id、单曲/专辑/歌单/艺人/用户搜索与联想词、HLS/直链音频播放、官方流派趋势榜单与精选歌单、每日推荐/私人 FM/新歌/相似曲目、歌手主页与专辑、曲目评论区；支持内嵌网页直接登录自动捕获凭证或粘贴 Cookie 同步个人喜欢与歌单
+// @desc SoundCloud 音源：搜索、趋势榜单与个人喜欢同步
+// @details 自动获取 client_id，单曲 / 专辑 / 歌单 / 艺人 / 用户搜索与联想词
+// @details HLS 与直链音频播放，流派趋势榜单与精选歌单
+// @details 每日推荐、私人 FM、新歌、相似曲目，歌手主页与曲目评论
+// @details 内嵌网页登录或粘贴 Cookie，同步个人喜欢与歌单
+// @screenshots screenshots/soundcloud-1.jpg
 // @api 2
 // @search track,album,playlist,artist,user
 

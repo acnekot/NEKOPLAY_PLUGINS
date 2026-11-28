@@ -5,7 +5,12 @@
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论/楼中楼/点赞/发表、相似推荐、个人主页、听歌排行与播放上报
+// @desc QQ 音乐音源：搜索、QRC 逐字歌词、日推与私人 FM
+// @details 单曲 / 专辑 / 歌手 / 歌单搜索，QRC 逐字歌词
+// @details 私人 FM、每日推荐、推荐歌单、歌单广场、新碟新歌、排行榜、MV 精选
+// @details 评论 / 楼中楼 / 点赞 / 发表，相似推荐
+// @details 个人主页、听歌排行与播放上报
+// @screenshots screenshots/qqmusic-1.jpg
 // @api 2
 // @search track,album,artist,playlist
 //

@@ -5,7 +5,11 @@
 // @minHost 0.6.8
 // @permissions motion.profile, storage
 // @author NEKOPLAY
-// @desc 独立点线面几何动效插件（内置实机交互演示台）：正方形封面与可选页面容器从左上原点 (0,0) 先拉成顶边光束线，再向下扫面展开（支持切歌/收起反向缩回点与三套 PRTS 风格预设热切换）
+// @desc 点 → 线 → 面的几何展开动效
+// @details 封面与页面从左上原点先拉成一道光束线，再向下扫成面
+// @details 切歌、收起时沿原路反向缩回成一个点
+// @details 内置实机演示台，三套预设可热切换
+// @screenshots screenshots/geom_motion-1.jpg
 // @api 2
 
 const PRESETS = {

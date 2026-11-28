@@ -6,7 +6,11 @@
 // @minHost 0.6.8
 // @permissions player.control, storage
 // @author NEKOPLAY
-// @desc 长按「上一首 / 下一首」实时变速快进与快退（支持磁带变速变调 / 原调倍速 / 极速巡航预设与长按触发时长热调；关闭或删除插件即恢复纯点击切歌）
+// @desc 长按上一首 / 下一首，变速快进快退
+// @details 按住「下一首」逐渐加速快进，按住「上一首」分段快退，松手恢复正常速度
+// @details 三套预设：磁带变速变调 / 原调倍速 / 极速巡航，长按触发时长可调
+// @details 关闭或删除插件即恢复纯点击切歌
+// @screenshots screenshots/scrub-1.jpg
 // @api 2
 
 const DEFAULTS = {

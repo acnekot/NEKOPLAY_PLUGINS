@@ -7,8 +7,14 @@
       "type": "source",
       "version": "1.5.0",
       "author": "NEKOPLAY",
-      "desc": "哔哩哔哩完整音源（参考 BBPlayer）：WBI 签名、视频/UP主/用户搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、每日推荐/随机电台/相似推荐/新歌榜单、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复）、用户主页、点赞/关注/收藏夹管理，扫码登录后同步收藏夹与稍后再看",
-      "url": "bilibili.js"
+      "desc": "把 B 站视频当歌听：搜索、高音质音频、收藏夹同步",
+      "minHost": "0.6.7",
+      "permissions": "network, storage",
+      "url": "bilibili.js",
+      "details": "搜索视频、UP 主和用户，分 P 与 UP 主合集按专辑展示\nDASH 音频流，支持 Hi-Res / FLAC 无损\n每日推荐、随机电台、相似推荐与新歌榜单\nCC 字幕自动转成歌词，视频评论区（热门 / 最新 / 楼中楼 / 点赞 / 回复）\n扫码登录后同步收藏夹和稍后再看，支持点赞、关注、收藏夹管理",
+      "screenshots": [
+        "screenshots/bilibili-1.jpg"
+      ]
     },
     {
       "id": "coverflow",
@@ -16,8 +22,15 @@
       "type": "feature",
       "version": "2.0.0",
       "author": "NEKOPLAY",
-      "desc": "经典 3D 透视封面墙（外包透明 CD 塑料壳、无缝亚克力厚边、3D 旋身翻盖放大、桌面一键收起侧栏、手机竖屏直进专辑/横屏自动展开；支持插件内热更新参数与预设）",
-      "url": "coverflow.js"
+      "desc": "经典 3D 透视封面墙，像翻唱片一样挑专辑",
+      "minHost": "0.6.8",
+      "permissions": "library.read, player.control, sensor.tilt, ui.sidebar",
+      "url": "coverflow.js",
+      "details": "透明 CD 塑料壳与亚克力厚边，3D 旋身翻盖放大\n桌面端一键收起侧栏全屏浏览；手机竖屏直接进专辑，横屏自动展开封面墙\n支持重力感应视差（手机），参数与预设可在插件里热调",
+      "screenshots": [
+        "screenshots/coverflow-1.jpg",
+        "screenshots/coverflow-2.jpg"
+      ]
     },
     {
       "id": "geom_motion",
@@ -25,8 +38,14 @@
       "type": "motion",
       "version": "1.0.2",
       "author": "NEKOPLAY",
-      "desc": "独立点线面几何动效插件（内置实机交互演示台）：正方形封面与可选页面容器从左上原点 (0,0) 先拉成顶边光束线，再向下扫面展开（支持切歌/收起反向缩回点与三套 PRTS 风格预设热切换）",
-      "url": "geom_motion.js"
+      "desc": "点 → 线 → 面的几何展开动效",
+      "minHost": "0.6.8",
+      "permissions": "motion.profile, storage",
+      "url": "geom_motion.js",
+      "details": "封面与页面从左上原点先拉成一道光束线，再向下扫成面\n切歌、收起时沿原路反向缩回成一个点\n内置实机演示台，三套预设可热切换",
+      "screenshots": [
+        "screenshots/geom_motion-1.jpg"
+      ]
     },
     {
       "id": "kugou",
@@ -34,8 +53,14 @@
       "type": "source",
       "version": "2.5.0",
       "author": "NEKOPLAY",
-      "desc": "酷狗概念版完整音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册 dfid 防风控、三段式 Auth VIP 取流、搜索（单曲/专辑/歌手/歌单）、热搜联想、歌单广场、排行榜、新碟/新歌、每日推荐、私人 FM、评论区与楼中楼、相似歌曲、歌手专辑与 MV、云盘、歌单管理/喜欢/关注、个人主页/听歌排行与曲库一键签到领 VIP",
-      "url": "kugou.js"
+      "desc": "酷狗概念版音源：搜索、VIP 取流、日推与私人 FM",
+      "minHost": "0.6.7",
+      "permissions": "network, storage",
+      "url": "kugou.js",
+      "details": "单曲 / 专辑 / 歌手 / 歌单搜索，热搜与联想词\n歌单广场、排行榜、新碟新歌、每日推荐、私人 FM\n评论区与楼中楼、相似歌曲、歌手专辑与 MV、云盘\n歌单管理、喜欢与关注，个人主页与听歌排行，曲库一键签到",
+      "screenshots": [
+        "screenshots/kugou-1.jpg"
+      ]
     },
     {
       "id": "lyric_translate",
@@ -43,8 +68,15 @@
       "type": "feature",
       "version": "1.0.0",
       "author": "NEKOPLAY",
-      "desc": "没有译文的外语歌词自动翻译成你的语言：可接入大模型逐句意译（Claude、DeepSeek、通义千问、Kimi、智谱、Gemini、OpenRouter、本地 Ollama 等 OpenAI 兼容接口），也可用免 Key 的机器翻译；译文按歌词缓存在本地",
-      "url": "lyric_translate.js"
+      "desc": "外语歌词自动翻译，可接入大模型",
+      "minHost": "0.6.9",
+      "permissions": "network, storage, lan",
+      "url": "lyric_translate.js",
+      "details": "没有译文的外语歌自动逐句翻译，译文显示在原句下方；先出原文，译文好了再补上\n大模型意译：Claude，或任何 OpenAI 兼容接口（DeepSeek、通义千问、Kimi、智谱、Gemini、OpenRouter、本地 Ollama 等）\n也可用免 Key 的机器翻译（MyMemory / 谷歌）\n自动跳过和目标语言相同的歌与作词作曲信息行；同一首歌只翻一次，译文缓存在本地\nAPI Key 只保存在本机，只发给你选的翻译服务",
+      "screenshots": [
+        "screenshots/lyric_translate-1.jpg",
+        "screenshots/lyric_translate-2.jpg"
+      ]
     },
     {
       "id": "netease",
@@ -52,8 +84,14 @@
       "type": "source",
       "version": "1.2.0",
       "author": "NEKOPLAY",
-      "desc": "网易云完整音源：搜索、播放、逐字歌词、日推、私人 FM、歌单广场、排行榜、评论与楼中楼、MV、电台、云盘、个人主页与听歌排行，扫码登录后同步歌单和喜欢",
-      "url": "netease.js"
+      "desc": "网易云音源：搜索、逐字歌词、日推与私人 FM",
+      "minHost": "0.6.7",
+      "permissions": "network, storage",
+      "url": "netease.js",
+      "details": "单曲 / 专辑 / 歌手 / 歌单 / 用户 / 歌词搜索\n逐字歌词与翻译，每日推荐、私人 FM、歌单广场、排行榜\n评论与楼中楼、MV、电台、云盘\n扫码登录后同步歌单、喜欢与个人主页",
+      "screenshots": [
+        "screenshots/netease-1.jpg"
+      ]
     },
     {
       "id": "origin_motion",
@@ -61,8 +99,14 @@
       "type": "motion",
       "version": "1.0.0",
       "author": "NEKOPLAY",
-      "desc": "独立源点空间动效插件：点哪个就从哪展开、返回原路缩回原入口（从哪来回哪去），支持列表点击邻近物理波纹联动与多级动量方向继承",
-      "url": "origin_motion.js"
+      "desc": "从哪点开就从哪展开，返回时原路缩回",
+      "minHost": "0.6.8",
+      "permissions": "motion.profile, storage",
+      "url": "origin_motion.js",
+      "details": "页面从被点击的位置展开，返回时缩回原入口\n列表点击带邻近波纹联动，多级页面继承动量方向",
+      "screenshots": [
+        "screenshots/origin_motion-1.jpg"
+      ]
     },
     {
       "id": "osu_motion",
@@ -70,8 +114,14 @@
       "type": "motion",
       "version": "2.3.0",
       "author": "NEKOPLAY",
-      "desc": "独立动效引擎插件：还原经典 osu!stable 选歌架逐项瀑布入场、设置侧栏留尾滑出与悬停弹出位移，支持插件内热切换预设、留尾倍率与瀑布入场强度",
-      "url": "osu_motion.js"
+      "desc": "选歌架式瀑布入场与侧栏留尾滑出",
+      "minHost": "0.6.8",
+      "permissions": "motion.profile, storage",
+      "url": "osu_motion.js",
+      "details": "列表逐项瀑布入场，悬停时弹出位移\n设置侧栏留尾滑出\n预设、留尾倍率与瀑布强度可在插件里热调",
+      "screenshots": [
+        "screenshots/osu_motion-1.jpg"
+      ]
     },
     {
       "id": "qqmusic",
@@ -79,8 +129,14 @@
       "type": "source",
       "version": "1.9.0",
       "author": "NEKOPLAY",
-      "desc": "QQ 音乐完整音源：搜索、播放、QRC 逐字歌词、私人 FM、每日推荐、推荐歌单、歌单广场、新碟/新歌、排行榜、MV 精选、评论/楼中楼/点赞/发表、相似推荐、个人主页、听歌排行与播放上报",
-      "url": "qqmusic.js"
+      "desc": "QQ 音乐音源：搜索、QRC 逐字歌词、日推与私人 FM",
+      "minHost": "0.6.7",
+      "permissions": "network, storage",
+      "url": "qqmusic.js",
+      "details": "单曲 / 专辑 / 歌手 / 歌单搜索，QRC 逐字歌词\n私人 FM、每日推荐、推荐歌单、歌单广场、新碟新歌、排行榜、MV 精选\n评论 / 楼中楼 / 点赞 / 发表，相似推荐\n个人主页、听歌排行与播放上报",
+      "screenshots": [
+        "screenshots/qqmusic-1.jpg"
+      ]
     },
     {
       "id": "scrub",
@@ -88,8 +144,14 @@
       "type": "feature",
       "version": "1.0.0",
       "author": "NEKOPLAY",
-      "desc": "长按「上一首 / 下一首」实时变速快进与快退（支持磁带变速变调 / 原调倍速 / 极速巡航预设与长按触发时长热调；关闭或删除插件即恢复纯点击切歌）",
-      "url": "scrub.js"
+      "desc": "长按上一首 / 下一首，变速快进快退",
+      "minHost": "0.6.8",
+      "permissions": "player.control, storage",
+      "url": "scrub.js",
+      "details": "按住「下一首」逐渐加速快进，按住「上一首」分段快退，松手恢复正常速度\n三套预设：磁带变速变调 / 原调倍速 / 极速巡航，长按触发时长可调\n关闭或删除插件即恢复纯点击切歌",
+      "screenshots": [
+        "screenshots/scrub-1.jpg"
+      ]
     },
     {
       "id": "soundcloud",
@@ -97,8 +159,14 @@
       "type": "source",
       "version": "1.1.3",
       "author": "NEKOPLAY",
-      "desc": "SoundCloud 独立音源：自动提取 client_id、单曲/专辑/歌单/艺人/用户搜索与联想词、HLS/直链音频播放、官方流派趋势榜单与精选歌单、每日推荐/私人 FM/新歌/相似曲目、歌手主页与专辑、曲目评论区；支持内嵌网页直接登录自动捕获凭证或粘贴 Cookie 同步个人喜欢与歌单",
-      "url": "soundcloud.js"
+      "desc": "SoundCloud 音源：搜索、趋势榜单与个人喜欢同步",
+      "minHost": "0.6.8",
+      "permissions": "network, storage",
+      "url": "soundcloud.js",
+      "details": "自动获取 client_id，单曲 / 专辑 / 歌单 / 艺人 / 用户搜索与联想词\nHLS 与直链音频播放，流派趋势榜单与精选歌单\n每日推荐、私人 FM、新歌、相似曲目，歌手主页与曲目评论\n内嵌网页登录或粘贴 Cookie，同步个人喜欢与歌单",
+      "screenshots": [
+        "screenshots/soundcloud-1.jpg"
+      ]
     },
     {
       "id": "vibe_board",
@@ -106,8 +174,14 @@
       "type": "page",
       "version": "1.0.0",
       "author": "NEKOPLAY",
-      "desc": "Plugin API v2 声明式页面插件示例：实时展示当前播放封面与曲库概览、记录听歌心情打卡、联动打开 3D 封面墙（纯 JS 热更新原生界面）",
-      "url": "vibe_board.js"
+      "desc": "声明式页面插件示例：听歌氛围看板",
+      "minHost": "0.6.8",
+      "permissions": "library.read, player.control, storage",
+      "url": "vibe_board.js",
+      "details": "实时显示当前播放的封面与曲库概况\n记录听歌心情打卡，可联动打开 3D 封面墙\n整个页面由插件 JS 生成、原生界面渲染，改脚本即可热更新（Plugin API v2 示例）",
+      "screenshots": [
+        "screenshots/vibe_board-1.jpg"
+      ]
     }
   ]
 }

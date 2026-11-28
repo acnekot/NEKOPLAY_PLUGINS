@@ -5,7 +5,10 @@
 // @minHost 0.6.8
 // @permissions motion.profile, storage
 // @author NEKOPLAY
-// @desc 独立源点空间动效插件：点哪个就从哪展开、返回原路缩回原入口（从哪来回哪去），支持列表点击邻近物理波纹联动与多级动量方向继承
+// @desc 从哪点开就从哪展开，返回时原路缩回
+// @details 页面从被点击的位置展开，返回时缩回原入口
+// @details 列表点击带邻近波纹联动，多级页面继承动量方向
+// @screenshots screenshots/origin_motion-1.jpg
 // @api 2
 
 const PRESETS = {

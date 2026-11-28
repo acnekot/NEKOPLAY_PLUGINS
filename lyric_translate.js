@@ -6,7 +6,13 @@
 // @minHost 0.6.9
 // @permissions network, storage, lan
 // @author NEKOPLAY
-// @desc 没有译文的外语歌词自动翻译成你的语言：可接入大模型逐句意译（Claude、DeepSeek、通义千问、Kimi、智谱、Gemini、OpenRouter、本地 Ollama 等 OpenAI 兼容接口），也可用免 Key 的机器翻译；译文按歌词缓存在本地
+// @desc 外语歌词自动翻译，可接入大模型
+// @details 没有译文的外语歌自动逐句翻译，译文显示在原句下方；先出原文，译文好了再补上
+// @details 大模型意译：Claude，或任何 OpenAI 兼容接口（DeepSeek、通义千问、Kimi、智谱、Gemini、OpenRouter、本地 Ollama 等）
+// @details 也可用免 Key 的机器翻译（MyMemory / 谷歌）
+// @details 自动跳过和目标语言相同的歌与作词作曲信息行；同一首歌只翻一次，译文缓存在本地
+// @details API Key 只保存在本机，只发给你选的翻译服务
+// @screenshots screenshots/lyric_translate-1.jpg, screenshots/lyric_translate-2.jpg
 // @api 2
 
 /* ---------------- 配置 ---------------- */

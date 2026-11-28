@@ -6,7 +6,11 @@
 // @minHost 0.6.8
 // @permissions library.read, player.control, sensor.tilt, ui.sidebar
 // @author NEKOPLAY
-// @desc 经典 3D 透视封面墙（外包透明 CD 塑料壳、无缝亚克力厚边、3D 旋身翻盖放大、桌面一键收起侧栏、手机竖屏直进专辑/横屏自动展开；支持插件内热更新参数与预设）
+// @desc 经典 3D 透视封面墙，像翻唱片一样挑专辑
+// @details 透明 CD 塑料壳与亚克力厚边，3D 旋身翻盖放大
+// @details 桌面端一键收起侧栏全屏浏览；手机竖屏直接进专辑，横屏自动展开封面墙
+// @details 支持重力感应视差（手机），参数与预设可在插件里热调
+// @screenshots screenshots/coverflow-1.jpg, screenshots/coverflow-2.jpg
 // @api 2
 
 const DEFAULTS = {

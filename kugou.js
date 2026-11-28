@@ -5,7 +5,12 @@
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 酷狗概念版完整音源（MIT 上游 MakcRe/KuGouMusicApi）：自动注册 dfid 防风控、三段式 Auth VIP 取流、搜索（单曲/专辑/歌手/歌单）、热搜联想、歌单广场、排行榜、新碟/新歌、每日推荐、私人 FM、评论区与楼中楼、相似歌曲、歌手专辑与 MV、云盘、歌单管理/喜欢/关注、个人主页/听歌排行与曲库一键签到领 VIP
+// @desc 酷狗概念版音源：搜索、VIP 取流、日推与私人 FM
+// @details 单曲 / 专辑 / 歌手 / 歌单搜索，热搜与联想词
+// @details 歌单广场、排行榜、新碟新歌、每日推荐、私人 FM
+// @details 评论区与楼中楼、相似歌曲、歌手专辑与 MV、云盘
+// @details 歌单管理、喜欢与关注，个人主页与听歌排行，曲库一键签到
+// @screenshots screenshots/kugou-1.jpg
 // @api 2
 // @search track,album,artist,playlist
 //

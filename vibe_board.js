@@ -5,7 +5,11 @@
 // @minHost 0.6.8
 // @permissions library.read, player.control, storage
 // @author NEKOPLAY
-// @desc Plugin API v2 声明式页面插件示例：实时展示当前播放封面与曲库概览、记录听歌心情打卡、联动打开 3D 封面墙（纯 JS 热更新原生界面）
+// @desc 声明式页面插件示例：听歌氛围看板
+// @details 实时显示当前播放的封面与曲库概况
+// @details 记录听歌心情打卡，可联动打开 3D 封面墙
+// @details 整个页面由插件 JS 生成、原生界面渲染，改脚本即可热更新（Plugin API v2 示例）
+// @screenshots screenshots/vibe_board-1.jpg
 // @api 2
 
 const MOODS = [

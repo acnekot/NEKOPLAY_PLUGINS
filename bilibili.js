@@ -5,7 +5,13 @@
 // @minHost 0.6.7
 // @permissions network, storage
 // @author NEKOPLAY
-// @desc 哔哩哔哩完整音源（参考 BBPlayer）：WBI 签名、视频/UP主/用户搜索、DASH 音频流（支持 Hi-Res FLAC）、分P与UP主合集、每日推荐/随机电台/相似推荐/新歌榜单、CC 字幕歌词、视频评论区（热门/最新/楼中楼/点赞/回复）、用户主页、点赞/关注/收藏夹管理，扫码登录后同步收藏夹与稍后再看
+// @desc 把 B 站视频当歌听：搜索、高音质音频、收藏夹同步
+// @details 搜索视频、UP 主和用户，分 P 与 UP 主合集按专辑展示
+// @details DASH 音频流，支持 Hi-Res / FLAC 无损
+// @details 每日推荐、随机电台、相似推荐与新歌榜单
+// @details CC 字幕自动转成歌词，视频评论区（热门 / 最新 / 楼中楼 / 点赞 / 回复）
+// @details 扫码登录后同步收藏夹和稍后再看，支持点赞、关注、收藏夹管理
+// @screenshots screenshots/bilibili-1.jpg
 // @api 2
 // @search track,artist,user
 //

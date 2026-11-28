@@ -5,7 +5,11 @@
 // @minHost 0.6.8
 // @permissions motion.profile, storage
 // @author NEKOPLAY
-// @desc 独立动效引擎插件：还原经典 osu!stable 选歌架逐项瀑布入场、设置侧栏留尾滑出与悬停弹出位移，支持插件内热切换预设、留尾倍率与瀑布入场强度
+// @desc 选歌架式瀑布入场与侧栏留尾滑出
+// @details 列表逐项瀑布入场，悬停时弹出位移
+// @details 设置侧栏留尾滑出
+// @details 预设、留尾倍率与瀑布强度可在插件里热调
+// @screenshots screenshots/osu_motion-1.jpg
 // @api 2
 
 const PRESETS = {
