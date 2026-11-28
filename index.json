@@ -38,6 +38,15 @@
       "url": "kugou.js"
     },
     {
+      "id": "lyric_translate",
+      "name": "歌词翻译",
+      "type": "feature",
+      "version": "1.0.0",
+      "author": "NEKOPLAY",
+      "desc": "没有译文的外语歌词自动翻译成你的语言：可接入大模型逐句意译（Claude、DeepSeek、通义千问、Kimi、智谱、Gemini、OpenRouter、本地 Ollama 等 OpenAI 兼容接口），也可用免 Key 的机器翻译；译文按歌词缓存在本地",
+      "url": "lyric_translate.js"
+    },
+    {
       "id": "netease",
       "name": "网易云音乐",
       "type": "source",
