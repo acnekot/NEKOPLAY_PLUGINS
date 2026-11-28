@@ -24,6 +24,8 @@ for f in sorted(os.listdir(here)):
         continue
     meta.setdefault('type', 'source')
     it = {k: meta[k] for k in ('id', 'name', 'type', 'version', 'author', 'desc', 'minHost', 'permissions') if k in meta} | {'url': f}
+    if meta.get('api', '').isdigit():
+        it['api'] = int(meta['api'])
     if details:
         it['details'] = '\n'.join(details)
     shots = [s.strip() for s in meta.get('screenshots', '').split(',') if s.strip()]

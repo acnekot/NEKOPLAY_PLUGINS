@@ -25,10 +25,11 @@ https://cdn.jsdelivr.net/gh/acnekot/NEKOPLAY_PLUGINS@main/index.json
    - `// @feature <槽位名>`（`feature` 类型必填）
    - `// @version <语义化版本号>`
    - `// @minHost <最低宿主版本>`（可选，如 `0.6.8`）
-   - `// @permissions <权限列表>`（可选，如 `network, storage`）
+   - `// @permissions <权限列表>`（可选，如 `network, storage, player.control`）
    - `// @author <作者>`
    - `// @desc <简介>`
-   - `// @api 1 | 2`
+   - `// @api 1 | 2 | 3`（新插件请用 3，接口说明见本体仓库 `docs/plugin-api.md`）
+   - `// @background true`（可选，常驻插件：App 启动时就运行，用于定时任务）
 2. 注册入口：音源插件使用 `nk.register({...})`，功能插件使用 `nk.registerFeature({...})`，页面插件使用 `nk.registerPage({...})`，动效插件使用 `nk.registerMotion({...})`。
 3. 修改脚本或版本号后，务必执行以下命令刷新订阅索引：
 
